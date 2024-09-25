@@ -72,97 +72,6 @@ export var presentation = {
 };
 var changed = false;
 
-class Channel {
-	pan=0;
-	gain=0;
-	buffers=[];
-	name;
-	constructor(){
-		while(true){
-			this.id=10000+Math.floor(Math.random()*90000);
-			for(var i=0;i<presentation.channels.length;i++){
-				if(presentation.channels[i].id===this.id){break;}
-			}
-			if(i===presentation.channels.length){
-				break;
-			}
-		}
-
-		this.name="channel-"+presentation.channels.length;
-
-		this.element = document.createElement("div");
-		this.element.className="channel";
-		this.element.dataset.id=this.id;
-
-		let channelInfoEl = document.createElement("div");
-		channelInfoEl.className="channel-info-panel";
-
-		let channelName = document.createElement("h4");
-		channelName.innerText=this.name;
-		channelName.contentEditable
-		channelName.addEventListener("dblclick",function(){
-			this.contentEditable=true;
-			this.focus();
-			this.addEventListener("blur",function(){
-				this.contentEditable=false;
-				for(let i=0;i<presentation.channels.length;i++){
-					if(presentation.channels[i].id==this.parentElement.parentElement.dataset.id){
-						presentation.channels[i].name=this.innerText;
-						break;
-					}
-				}
-			},{once:true});
-		});
-		channelInfoEl.appendChild(channelName);
-
-		let panSliderContainer = document.createElement("div");
-		panSliderContainer.className="pan-slider-container";
-		this.panSlider = document.createElement("input");
-		this.panSlider.className="pan-slider";
-		this.panSlider.type="range";
-		this.panSlider.value=0;
-		this.panSlider.min=-1;
-		this.panSlider.max=1;
-		this.panSlider.step=0.01;
-		this.panSlider.setAttribute("list",panMarker.id);
-		this.panSlider.addEventListener("mousemove",function(e){
-			this.pan=e.target.valueAsNumber;
-			if(e.target.valueAsNumber<0.1 && e.target.valueAsNumber>-0.1){
-				e.target.step=0.2;
-			}else{
-				e.target.step=0.01;
-			}
-		});
-		panSliderContainer.appendChild(this.panSlider);
-		channelInfoEl.appendChild(panSliderContainer);
-
-		let removeButton = document.createElement("div");
-		removeButton.className="channel-delete";
-		removeButton.addEventListener("click",function(){
-			for(let i=0;i<presentation.channels.length;i++){
-				if(presentation.channels[i].id==this.parentElement.parentElement.dataset.id){
-					if(confirm("Do you really want to delete "+presentation.channels[i].name+"?")){
-						presentation.channels[i].element.remove();
-						presentation.channels.splice(i,1);
-					}
-					break;
-				}
-			}
-		});
-		channelInfoEl.appendChild(removeButton);
-
-		this.element.appendChild(channelInfoEl);
-
-		this.waveArea = document.createElement("div");
-		this.waveArea.className="wave-area";
-		this.waveArea.innerText="This channel is empty";
-		this.element.appendChild(this.waveArea);
-		channelDeck.appendChild(this.element);
-	}
-
-	play(time){}
-}
-
 async function openFile(file){
 	//get info from sd file
 	let pres = await sd.parse(file);
@@ -424,28 +333,13 @@ topbar.edit.addEventListener("mouseover",function(){
 
 	if(listView.style.display==="block"){
 		let newChannelItem = document.createElement("div");
-		newChannelItem.innerText="New Channel";
+		newChannelItem.innerText="New Group";
 		newChannelItem.className="context-item";
 		newChannelItem.addEventListener("click",function(){
-			presentation.channels.push(new Channel());
+			presentation.groups.push(new Group());
 			changed=true;
 		});
 		contextMenu.appendChild(newChannelItem);
-	}
-
-	if(slideView.style.display==="block"){
-		let newSynthItem = document.createElement("div");
-		newSynthItem.innerText="New Synth Patch";
-		newSynthItem.className="context-item";
-		newSynthItem.addEventListener("click",function(){
-			presentation.patches.push(new SynthPatch());
-			synth.setCurrentPatch(presentation.patches[presentation.patches.length-1]);
-			enableSynthMenus();
-			synth.currentPatch.modules.push(new synth.Module(a,0));
-			changed=true;
-			synth.draw();
-		});
-		contextMenu.appendChild(newSynthItem);
 	}
 
 	contextMenu.style.left=topbar.edit.getBoundingClientRect().x;
