@@ -1,6 +1,6 @@
 {
     "name": "Debug",
-    "desc": "Debug Dawnline",
+    "desc": "Debug Slides",
     "author": "TurnOffTheTV",
     "version": "1.0.0",
     "src": "/addons/debug/debug.mjs"

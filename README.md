@@ -1,6 +1,6 @@
 # Slides
 
-![Dawnline Logo](logo.png)
+![Slides Logo](logo.png)
 
 An advanced, modern web app for presentations. Currently a work in progress.
 

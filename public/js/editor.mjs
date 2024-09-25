@@ -4,14 +4,11 @@
 //import modules
 export const sd = await import("./sd.mjs");
 
-console.log(sd);
-
 //get settings
 let settings = JSON.parse(localStorage.getItem("settings"));
 
 if(!settings){
 	settings={
-		sampleRate:44100,
 		debugMenu:false
 	}
 	localStorage.setItem("settings",JSON.stringify(settings));
@@ -19,19 +16,19 @@ if(!settings){
 
 //get elements
 const button = {
-	renameProject:document.getElementById("button-rename-project"),
+	renamePresentation:document.getElementById("button-rename-presentation"),
 	sendCode:document.getElementById("button-send-code"),
 	addonWindow:document.getElementById("button-addon-window"),
 	installAddon:document.getElementById("button-install-addon")
 };
 const input = {
-	renameProject:document.getElementById("input-rename-project"),
+	renamePresentation:document.getElementById("input-rename-presentation"),
 	sampleRate:document.getElementById("input-sample-rate"),
 	secretCode:document.getElementById("input-secret-code"),
 	addonUrl:document.getElementById("input-addon-url")
 };
 const windows = {
-	renameProject:document.getElementById("window-rename-project"),
+	renamePresentation:document.getElementById("window-rename-presentation"),
 	unavailable:document.getElementById("window-unavailable"),
 	about:document.getElementById("window-about"),
 	programSettings:document.getElementById("window-program-settings"),
@@ -47,11 +44,11 @@ const topbar = {
 	view: document.getElementById("topbar-view")
 };
 
-const controlbar = {
+const editbar = {
 	items:[],
-	el: document.getElementById("controlbar"),
-	play: document.getElementById("controlbar-play"),
-	pause: document.getElementById("controlbar-pause")
+	el: document.getElementById("editbar"),
+	play: document.getElementById("editbar-play"),
+	pause: document.getElementById("editbar-pause")
 };
 
 const listView = document.getElementById("list-view");
@@ -68,8 +65,8 @@ const contextMenu = document.getElementById("context-menu");
 //file management
 var sdFileHandler;
 
-//project
-export var project = {
+//presentation
+export var presentation = {
 	name: "New Presentation",
 	groups: []
 };
@@ -83,15 +80,15 @@ class Channel {
 	constructor(){
 		while(true){
 			this.id=10000+Math.floor(Math.random()*90000);
-			for(var i=0;i<project.channels.length;i++){
-				if(project.channels[i].id===this.id){break;}
+			for(var i=0;i<presentation.channels.length;i++){
+				if(presentation.channels[i].id===this.id){break;}
 			}
-			if(i===project.channels.length){
+			if(i===presentation.channels.length){
 				break;
 			}
 		}
 
-		this.name="channel-"+project.channels.length;
+		this.name="channel-"+presentation.channels.length;
 
 		this.element = document.createElement("div");
 		this.element.className="channel";
@@ -108,9 +105,9 @@ class Channel {
 			this.focus();
 			this.addEventListener("blur",function(){
 				this.contentEditable=false;
-				for(let i=0;i<project.channels.length;i++){
-					if(project.channels[i].id==this.parentElement.parentElement.dataset.id){
-						project.channels[i].name=this.innerText;
+				for(let i=0;i<presentation.channels.length;i++){
+					if(presentation.channels[i].id==this.parentElement.parentElement.dataset.id){
+						presentation.channels[i].name=this.innerText;
 						break;
 					}
 				}
@@ -142,11 +139,11 @@ class Channel {
 		let removeButton = document.createElement("div");
 		removeButton.className="channel-delete";
 		removeButton.addEventListener("click",function(){
-			for(let i=0;i<project.channels.length;i++){
-				if(project.channels[i].id==this.parentElement.parentElement.dataset.id){
-					if(confirm("Do you really want to delete "+project.channels[i].name+"?")){
-						project.channels[i].element.remove();
-						project.channels.splice(i,1);
+			for(let i=0;i<presentation.channels.length;i++){
+				if(presentation.channels[i].id==this.parentElement.parentElement.dataset.id){
+					if(confirm("Do you really want to delete "+presentation.channels[i].name+"?")){
+						presentation.channels[i].element.remove();
+						presentation.channels.splice(i,1);
 					}
 					break;
 				}
@@ -168,18 +165,14 @@ class Channel {
 
 async function openFile(file){
 	//get info from sd file
-	let proj = await sd.parse(file);
-	project = proj.proj;
-	document.title=project.name+" - Slides";
-
-	if(project.sampleRate!==a.sampleRate){
-		a = new AudioContext({sampleRate:project.sampleRate});
-	}
+	let pres = await sd.parse(file);
+	presentation = pres.pres;
+	document.title=presentation.name+" - Slides";
 
 	//set up channels
 	channelDeck.innerHTML="";
-	for(var i=0;i<proj.channels.length;i++){
-		//TODO: add channels based on file data
+	for(var i=0;i<pres.groups.length;i++){
+		//TODO: add groups based on file data
 	}
 }
 
@@ -197,9 +190,6 @@ function setAddonMenu(e){
 	if(topbar.el.contains(e.target)){
 		item = getTopbarItemById(e.target.dataset.id);
 	}
-	if(patchbar.el.contains(e.target)){
-		item = getPatchbarItemById(e.target.dataset.id);
-	}
 	for(let i=0;i<item.menu.items.length;i++){
 		let newItem = document.createElement("div");
 		newItem.innerText=item.menu.items[i].label;
@@ -215,18 +205,11 @@ function setAddonMenu(e){
 	contextMenu.style.top=e.target.getBoundingClientRect().bottom;
 }
 
-function enableSynthMenus(){
-	patchbar.generators.removeAttribute("disabled");
-	patchbar.basics.removeAttribute("disabled");
-}
-
-input.sampleRate.value=settings.sampleRate;
-
-channelView.style.display="block";
+listView.style.display="block";
 
 //event listeners
 window.addEventListener("click",function(e){
-	if(!topbar.el.contains(e.target) && !patchbar.el.contains(e.target)){
+	if(!topbar.el.contains(e.target)){
 		contextMenu.style.display="none";
 	}
 });
@@ -255,15 +238,15 @@ window.addEventListener("keydown",async function(e){
 		e.preventDefault();
 		if(sdFileHandler){
 			let fileWriter = await sdFileHandler.createWritable();
-			fileWriter.write(sd.create(project));
+			fileWriter.write(sd.create(presentation));
 			fileWriter.close();
 		}else{
 			let fileOpts = sd.fileOpts;
-			fileOpts.suggestedName=project.name+".sd";
+			fileOpts.suggestedName=presentation.name+".sd";
 			window.showSaveFilePicker(fileOpts).then(async function(res){
 				sdFileHandler = res;
 				let fileWriter = await sdFileHandler.createWritable();
-				fileWriter.write(sd.create(project));
+				fileWriter.write(sd.create(presentation));
 				fileWriter.close();
 			});
 		}
@@ -271,14 +254,14 @@ window.addEventListener("keydown",async function(e){
 	if(e.code==="KeyS" && e.shiftKey && (e.ctrlKey || e.metaKey)){
 		e.preventDefault();
 		let fileOpts = sd.fileOpts;
-		fileOpts.suggestedName=project.name+".sd";
+		fileOpts.suggestedName=presentation.name+".sd";
 		//ask where to save and reset file writer to there
 		window.showSaveFilePicker(fileOpts).then(async function(res){
 			sdFileHandler = res;
 			let fileWriter = await sdFileHandler.createWritable();
 			//DEBUG
-			console.log(sd.create(project));
-			fileWriter.write(sd.create(project));
+			console.log(sd.create(presentation));
+			fileWriter.write(sd.create(presentation));
 			fileWriter.close();
 			fileWriter = await fileWriter.getWriter();
 		});
@@ -288,7 +271,7 @@ window.addEventListener("keydown",async function(e){
 //clear windows when background pressed
 windowBackground.addEventListener("click",function(e){
 	if(windows.unavailable.style.display!=="block" && !windows.addon.hasAttribute("changed")){windowBackground.style.display="none";}
-	windows.renameProject.style.display="none";
+	windows.renamePresentation.style.display="none";
 	windows.about.style.display="none";
 	windows.programSettings.style.display="none";
 	if(!windows.addon.hasAttribute("changed")){windows.addon.style.display="none";}
@@ -338,17 +321,17 @@ topbar.file.addEventListener("mouseover",function(){
 		if(confirmed){
 			sdFileHandler=undefined;
 			changed=false;
-			project={
-				name: "New Project",
+			presentation={
+				name: "New presentation",
 				sampleRate: settings.sampleRate,
 				channels: [],
 				patches: []
 			};
-			if(project.sampleRate!==a.sampleRate){
-				a = new AudioContext({sampleRate:project.sampleRate});
+			if(presentation.sampleRate!==a.sampleRate){
+				a = new AudioContext({sampleRate:presentation.sampleRate});
 			}
 			channelDeck.innerHTML="";
-			document.title=project.name;
+			document.title=presentation.name;
 		}
 	});
 	contextMenu.appendChild(newItem);
@@ -371,15 +354,15 @@ topbar.file.addEventListener("mouseover",function(){
 	saveItem.addEventListener("click",async function(){
 		if(sdFileHandler){
 			let fileWriter = await sdFileHandler.createWritable();
-			fileWriter.write(sd.create(project));
+			fileWriter.write(sd.create(presentation));
 			fileWriter.close();
 		}else{
 			let fileOpts = sd.fileOpts;
-			fileOpts.suggestedName=project.name+".sd";
+			fileOpts.suggestedName=presentation.name+".sd";
 			window.showSaveFilePicker(fileOpts).then(async function(res){
 				sdFileHandler = res;
 				let fileWriter = await sdFileHandler.createWritable();
-				fileWriter.write(sd.create(project));
+				fileWriter.write(sd.create(presentation));
 				fileWriter.close();
 			});
 		}
@@ -391,14 +374,14 @@ topbar.file.addEventListener("mouseover",function(){
 	saveAsItem.className="context-item";
 	saveAsItem.addEventListener("click",async function(){
 		let fileOpts = sd.fileOpts;
-		fileOpts.suggestedName=project.name+".sd";
+		fileOpts.suggestedName=presentation.name+".sd";
 		//ask where to save and reset file writer to there
 		window.showSaveFilePicker(fileOpts).then(async function(res){
 			sdFileHandler = res;
 			let fileWriter = await sdFileHandler.createWritable();
 			//DEBUG
-			console.log(sd.create(project));
-			fileWriter.write(sd.create(project));
+			console.log(sd.create(presentation));
+			fileWriter.write(sd.create(presentation));
 			fileWriter.close();
 			fileWriter = await fileWriter.getWriter();
 		});
@@ -410,10 +393,10 @@ topbar.file.addEventListener("mouseover",function(){
 	renameItem.className="context-item";
 	renameItem.addEventListener("click",function(){
 		windowBackground.style.display="block";
-		windows.renameProject.style.display="block";
-		input.renameProject.value=project.name;
-		input.renameProject.placeholder=project.name;
-		input.renameProject.focus();
+		windows.renamePresentation.style.display="block";
+		input.renamePresentation.value=presentation.name;
+		input.renamePresentation.placeholder=presentation.name;
+		input.renamePresentation.focus();
 	});
 	contextMenu.appendChild(renameItem);
 	contextMenu.style.left=topbar.file.getBoundingClientRect().x;
@@ -439,24 +422,24 @@ topbar.edit.addEventListener("mouseover",function(){
 	pasteItem.addEventListener("click",function(){});
 	contextMenu.appendChild(pasteItem);
 
-	if(channelView.style.display==="block"){
+	if(listView.style.display==="block"){
 		let newChannelItem = document.createElement("div");
 		newChannelItem.innerText="New Channel";
 		newChannelItem.className="context-item";
 		newChannelItem.addEventListener("click",function(){
-			project.channels.push(new Channel());
+			presentation.channels.push(new Channel());
 			changed=true;
 		});
 		contextMenu.appendChild(newChannelItem);
 	}
 
-	if(synthView.style.display==="block"){
+	if(slideView.style.display==="block"){
 		let newSynthItem = document.createElement("div");
 		newSynthItem.innerText="New Synth Patch";
 		newSynthItem.className="context-item";
 		newSynthItem.addEventListener("click",function(){
-			project.patches.push(new SynthPatch());
-			synth.setCurrentPatch(project.patches[project.patches.length-1]);
+			presentation.patches.push(new SynthPatch());
+			synth.setCurrentPatch(presentation.patches[presentation.patches.length-1]);
 			enableSynthMenus();
 			synth.currentPatch.modules.push(new synth.Module(a,0));
 			changed=true;
@@ -479,24 +462,24 @@ topbar.view.addEventListener("mouseover",function(){
 	});
 	contextMenu.appendChild(settingsItem);
 
-	if(channelView.style.display!=="block"){
+	if(listView.style.display!=="block"){
 		let channelItem = document.createElement("div");
 		channelItem.innerText="Channel View";
 		channelItem.className="context-item";
 		channelItem.addEventListener("click",function(){
-			channelView.style.display="block";
-			synthView.style.display="none";
+			listView.style.display="block";
+			slideView.style.display="none";
 			synth.unload();
 		});
 		contextMenu.appendChild(channelItem);
 	}
-	if(synthView.style.display!=="block"){
+	if(slideView.style.display!=="block"){
 		let synthItem = document.createElement("div");
 		synthItem.innerText="Synth View";
 		synthItem.className="context-item";
 		synthItem.addEventListener("click",function(){
-			synthView.style.display="block";
-			channelView.style.display="none";
+			slideView.style.display="block";
+			listView.style.display="none";
 			synth.load();
 		});
 		contextMenu.appendChild(synthItem);
@@ -511,14 +494,14 @@ topbar.file.addEventListener("click",showHideCtxMenu);
 topbar.edit.addEventListener("click",showHideCtxMenu);
 topbar.view.addEventListener("click",showHideCtxMenu);
 
-//control bar buttons
-controlbar.play.addEventListener("click",function(){
-	controlbar.play.style.display="none";
-	controlbar.pause.style.display="block";
+//edit bar buttons
+editbar.play.addEventListener("click",function(){
+	editbar.play.style.display="none";
+	editbar.pause.style.display="block";
 });
-controlbar.pause.addEventListener("click",function(){
-	controlbar.pause.style.display="none";
-	controlbar.play.style.display="block";
+editbar.pause.addEventListener("click",function(){
+	editbar.pause.style.display="none";
+	editbar.play.style.display="block";
 });
 
 //settings
@@ -586,14 +569,14 @@ button.installAddon.addEventListener("click",function(){
 	windows.addon.children[windows.addon.childElementCount-1].style.display="block";
 });
 
-//rename project window
-button.renameProject.addEventListener("click",function(){
-	if(input.renameProject.value!==""){
-		project.name=input.renameProject.value;
-		document.title=input.renameProject.value+" - Slides";
+//rename presentation window
+button.renamePresentation.addEventListener("click",function(){
+	if(input.renamePresentation.value!==""){
+		presentation.name=input.renamePresentation.value;
+		document.title=input.renamePresentation.value+" - Slides";
 	}
 	windowBackground.style.display="none";
-	windows.renameProject.style.display="none";
+	windows.renamePresentation.style.display="none";
 })
 
 if(window.launchQueue){
@@ -700,7 +683,7 @@ export function addItemToControlbar(item){
 	if(!item instanceof BarItem){
 		throw new Error("item is not of type ControlbarItem");
 	}
-	controlbar.items.push(item);
+	editbar.items.push(item);
 }
 
 export function addItemToPatchbar(item){

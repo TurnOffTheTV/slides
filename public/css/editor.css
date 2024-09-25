@@ -41,19 +41,13 @@
 	border-bottom: 1px var(--color-gray) solid;
 }
 
-#controlbar {
+#editbar {
 	height: 50px;
 	width: 100%;
 	border-bottom: 1px var(--color-gray) solid;
 }
 
-#patchbar {
-	height: 25px;
-	width: 100%;
-	border-bottom: 1px var(--color-gray) solid;
-}
-
-#channel-deck {
+#slide-list {
 	width: 100%;
 	height: calc(100% - 75px);
 	overflow-y: scroll;
@@ -61,7 +55,7 @@
 	flex-direction: column;
 }
 
-#synth-canvas {
+#slide-canvas {
 	width: 100%;
 	height: 100%;
 }
@@ -138,7 +132,7 @@
 	background: none;
 }
 
-.controlbar-item {
+.editbar-item {
 	height: 50px;
 	line-height: 50px;
 	margin: 0px;
@@ -147,92 +141,20 @@
 	padding: 0px;
 }
 
-.controlbar-item:hover {
+.editbar-item:hover {
 	background-color: var(--color-background-secondary);
 }
 
-.controlbar-item:active {
+.editbar-item:active {
 	background-color: var(--color-blue);
 }
 
-.channel {
+.group {
 	width: 100%;
 	height: 150px;
 	border-bottom: 1px var(--color-gray) solid;
 	display: flex;
 	flex-direction: row;
-}
-
-.channel-info-panel {
-	min-width: 150px;
-	max-width: 150px;
-	height: 100%;
-	text-align: center;
-	background: var(--color-background-secondary);
-	border-right: 1px var(--color-gray) solid;
-	display: flex;
-	flex-direction: column;
-	padding: 0px;
-}
-
-.pan-slider-container {
-	width: 125px;
-	height: 10px;
-	padding: auto;
-	margin: 0px;
-	align-self:center;
-}
-
-.pan-slider {
-	display: block;
-	appearance: none;
-	border-radius: 5px;
-	text-align: center;
-	outline: none;
-	width: 125px;
-	height: 10px;
-	align-items: center;
-	background-color: var(--color-background-tertiary);
-}
-
-.pan-slider::-webkit-slider-thumb {
-	-webkit-appearance: none;
-	appearance: none;
-	border-radius: 50%;
-	width: 15px;
-	height: 15px;
-	background: var(--color-blue);
-	outline: none;
-	cursor: ew-resize;
-}
-
-.pan-slider::-moz-range-thumb {
-	border-radius: 50%;
-	width: 15px;
-	height: 15px;
-	background: var(--color-blue);
-	outline: none;
-	cursor: ew-resize;
-}
-
-.channel-delete {
-	position: absolute;
-	float: left;
-	left: 0px;
-	width: 20px;
-	height: 20px;
-	cursor: hand;
-	background-image: url("/images/remove.svg");
-}
-
-.wave-area {
-	color: var(--color-background-secondary);
-	font-size: 50px;
-	text-align: center;
-	line-height: 150px;
-	width: 100%;
-	height: 150px;
-	overflow-x: scroll;
 }
 
 .settings-item {
