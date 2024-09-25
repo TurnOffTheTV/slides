@@ -1,0 +1,81 @@
+<html>
+	<head>
+		<title>New Presentation - Slides</title>
+		<link rel="stylesheet" href="/css/editor.css">
+		<link rel="manifest" href="/manifest.json" />
+		<datalist id="pan-marker">
+			<option value="0"></option>
+		</datalist>
+	</head>
+	<body>
+		<div id="topbar" class="h bar">
+			<div id="topbar-logo" class="topbar-item">
+				<img src="/images/logo.png" width="25">
+			</div>
+			<div id="topbar-file" class="topbar-item">
+				File
+			</div>
+			<div id="topbar-edit" class="topbar-item">
+				Edit
+			</div>
+			<div id="topbar-view" class="topbar-item">
+				View
+			</div>
+		</div>
+		<div id="list-view" class="view">
+			<div id="editbar" class="h bar">
+				<div id="editbar-play" class="editbar-item"><img src="/images/play.svg"></div>
+				<div id="editbar-pause" class="editbar-item" style="display:none;"><img src="/images/pause.svg"></div>
+			</div>
+			<div id="slide-list"></div>
+		</div>
+		<div id="slide-view" class="view" style="display:none">
+			<div style="height:100%;width:100%;background:black;">
+				<canvas id="slide-canvas"></canvas>
+			</div>
+		</div>
+		<div id="window-background" style="display:none;"></div>
+		<div id="window-rename-presentation" class="window" style="display:none;">
+			<h1>Rename Presentation</h1>
+			<input id="input-rename-presentation" placeholder="New Presentation">
+			<input type="button" id="button-rename-presentation" value="Rename">
+		</div>
+		<!--<div id="window-unavailable" class="window" style="display:none;">
+			<h1>Slides Unavailable</h1>
+			<p>You can't use Slides in this browser because it doesn't support the Web Audio API. Try updating or use a different browser.</p>
+		</div>-->
+		<div id="window-program-settings" class="window" style="display:none;">
+			<h1>Slides Settings</h1>
+			<div class="v bar" style="border:1px var(--color-gray) solid;background:var(--color-background-secondary);">
+				<div class="settings-item">
+					<input id="input-secret-code">
+					<input id="button-send-code" type="button" value="Send">
+					<label for="input-secret-code">Secret Code</label>
+				</div>
+				<div class="settings-item" style="text-align: center;">
+					<input id="button-addon-window" type="button" value="Manage Add-ons">
+				</div>
+			</div>
+		</div>
+		<div id="window-about" class="window" style="display:none;">
+			<h1>About Slides</h1>
+			<p>Slides was created by these people:</p>
+			<ul>
+				<li>TurnOffTheTV</li>
+			</ul>
+			<p>Dawnline is open-source on <a href="https://github.com/TurnOffTheTV/slides" target="_blank">GitHub</a>!</p>
+		</div>
+		<div id="window-addons" class="window" style="display:none;">
+			<h1>Add-ons</h1>
+			<div id="addon-list" class="v bar" style="border:1px var(--color-gray) solid;background:var(--color-background-secondary);">
+				<div class="settings-item">
+					<span>Debug</span><span>1.0.0</span><span>Debug Slides</span><span>TurnOffTheTV</span>
+				</div>
+			</div>
+			<p><input id="input-addon-url" type="url">&Tab;<input id="button-install-addon" type="button" value="Install Add-on"></p>
+			<p style="display: none;">Reload for changes to take effect</p>
+		</div>
+		<div id="context-menu" style="display:none;"></div>
+		<script src="/js/env.mjs" type="module"></script>
+	</body>
+</html>

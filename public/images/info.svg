@@ -1,0 +1,26 @@
+<svg version="1.1" width="50" height="50" xmlns="http://www.w3.org/2000/svg">
+    <style>
+        circle {
+            fill: none;
+            stroke: black;
+            stroke-width: 2.5px;
+            stroke-linecap: round;
+        }
+        line {
+            stroke: black;
+            stroke-width: 2.5px;
+            stroke-linecap: round;
+        }
+        @media (prefers-color-scheme: dark) {
+            circle {
+                stroke: white;
+            }
+            line {
+                stroke: white;
+            }
+        }
+    </style>
+    <circle cx="25" cy="25" r="20"/>
+    <line x1="25" x2="25" y1="35" y2="25"/>
+    <circle cx="25" cy="17.5" r="1"/>
+</svg>

@@ -1,0 +1,7 @@
+{
+    "name": "Cloud Storage",
+    "desc": "Store projects in the cloud.",
+    "author": "TurnOffTheTV",
+    "version": "1.0.0",
+    "src": "/addons/cloud-storage/cloud-storage.mjs"
+}
