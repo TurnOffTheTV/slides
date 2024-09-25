@@ -11,21 +11,21 @@
 :root {
 	/* theme colors */
 	--color-blue: rgb(60,95,240);
-	--color-gray: rgb(102,102,102);
+	--color-gray: rgb(67,67,67);
 
 	/* basic colors */
-	--color-background: rgb(255,255,255);
-	--color-background-secondary: rgb(225,225,225);
-	--color-background-tertiary: rgb(200,200,200);
-	--color-text: rgb(0,0,0);
+	--color-background: rgb(235,235,235);
+    --color-background-secondary: rgb(205,205,205);
+    --color-background-tertiary: rgb(180,180,180);
+    --color-text: black;
 	--color-text-disabled: rgb(64,64,64);
 
 	/* colors for dark mode */
 	@media (prefers-color-scheme: dark) {
-		--color-background: rgb(50,50,50);
-		--color-background-secondary: rgb(75,75,75);
-		--color-background-tertiary: rgb(100,100,100);
-		--color-text: rgb(255,255,255);
+		--color-background: rgb(30,30,30);
+        --color-background-secondary: rgb(55,55,55);
+        --color-background-tertiary: rgb(80,80,80);
+        --color-text: white;
 		--color-text-disabled: rgb(192,192,192);
 	}
 

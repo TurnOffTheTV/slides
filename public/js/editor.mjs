@@ -462,29 +462,6 @@ topbar.view.addEventListener("mouseover",function(){
 	});
 	contextMenu.appendChild(settingsItem);
 
-	if(listView.style.display!=="block"){
-		let channelItem = document.createElement("div");
-		channelItem.innerText="Channel View";
-		channelItem.className="context-item";
-		channelItem.addEventListener("click",function(){
-			listView.style.display="block";
-			slideView.style.display="none";
-			synth.unload();
-		});
-		contextMenu.appendChild(channelItem);
-	}
-	if(slideView.style.display!=="block"){
-		let synthItem = document.createElement("div");
-		synthItem.innerText="Synth View";
-		synthItem.className="context-item";
-		synthItem.addEventListener("click",function(){
-			slideView.style.display="block";
-			listView.style.display="none";
-			synth.load();
-		});
-		contextMenu.appendChild(synthItem);
-	}
-
 	contextMenu.style.left=topbar.view.getBoundingClientRect().x;
 	contextMenu.style.top=topbar.view.getBoundingClientRect().bottom;
 });

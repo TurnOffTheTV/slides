@@ -6,8 +6,16 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TurnOffTheTV/slides.git"
+  },
   "author": "TurnOffTheTV",
   "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/TurnOffTheTV/slides/issues"
+  },
+  "homepage": "https://github.com/TurnOffTheTV/slides#readme",
   "dependencies": {
     "express": "^4.21.0"
   }
