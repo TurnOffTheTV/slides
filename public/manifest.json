@@ -4,7 +4,7 @@
 	"start_url": "/editor/",
 	"display": "standalone",
 	"categories": ["utilities"],
-	"theme_color": "rgb(255,153,0)",
+	"theme_color": "rgb(60,95,240)",
 	"icons": [
 		{
 			"src": "/images/logo.png",

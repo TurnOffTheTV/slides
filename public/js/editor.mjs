@@ -47,14 +47,12 @@ const topbar = {
 const editbar = {
 	items:[],
 	el: document.getElementById("editbar"),
-	play: document.getElementById("editbar-play"),
-	pause: document.getElementById("editbar-pause")
+	present: document.getElementById("editbar-present"),
+	presentStart: document.getElementById("editbar-present-start")
 };
 
 const listView = document.getElementById("list-view");
 const slideView = document.getElementById("slide-view");
-
-const channelDeck = document.getElementById("channel-deck");
 
 const addonList = document.getElementById("addon-list");
 
@@ -71,6 +69,13 @@ export var presentation = {
 	groups: []
 };
 var changed = false;
+var canPresent = false;
+
+//presentation api
+const presRequest = new PresentationRequest(["/editor","/present"]);
+presRequest.getAvailability().then(function(availability){
+	canPresent=availability.value;
+});
 
 async function openFile(file){
 	//get info from sd file
@@ -78,8 +83,8 @@ async function openFile(file){
 	presentation = pres.pres;
 	document.title=presentation.name+" - Slides";
 
-	//set up channels
-	channelDeck.innerHTML="";
+	//set up groups
+	listView.innerHTML="";
 	for(var i=0;i<pres.groups.length;i++){
 		//TODO: add groups based on file data
 	}
@@ -239,7 +244,7 @@ topbar.file.addEventListener("mouseover",function(){
 			if(presentation.sampleRate!==a.sampleRate){
 				a = new AudioContext({sampleRate:presentation.sampleRate});
 			}
-			channelDeck.innerHTML="";
+			listView.innerHTML="";
 			document.title=presentation.name;
 		}
 	});
@@ -365,14 +370,19 @@ topbar.file.addEventListener("click",showHideCtxMenu);
 topbar.edit.addEventListener("click",showHideCtxMenu);
 topbar.view.addEventListener("click",showHideCtxMenu);
 
-//edit bar buttons
-editbar.play.addEventListener("click",function(){
-	editbar.play.style.display="none";
-	editbar.pause.style.display="block";
+editbar.el.addEventListener("mouseover",function(){
+	presRequest.getAvailability().then(function(availability){
+		canPresent=availability.value;
+		console.log(canPresent);
+	});
 });
-editbar.pause.addEventListener("click",function(){
-	editbar.pause.style.display="none";
-	editbar.play.style.display="block";
+
+//edit bar buttons
+editbar.present.addEventListener("click",function(){
+	presRequest.start();
+});
+editbar.presentStart.addEventListener("click",function(){
+	presRequest.start();
 });
 
 //settings
