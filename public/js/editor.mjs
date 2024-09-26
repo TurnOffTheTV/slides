@@ -5,7 +5,6 @@
 export const sd = await import("./sd.mjs");
 
 //for add-ons
-
 export class BarItem {
 	label;
 	id;
@@ -48,12 +47,20 @@ export class ContextMenu {
 		}
 		this.items=items;
 	}
+
+	getItemById(id){
+		let item = this.items.find(function(e){
+			return e.id===id;
+		});
+		return item;
+	}
 }
 
 export class ContextMenuItem {
 	label;
 	id;
 	#disabled=false;
+	#visible=true;
 	element = document.createElement("div");
 	constructor(id,label,onclick){
 		this.label=label;
@@ -68,10 +75,20 @@ export class ContextMenuItem {
 		return this.#disabled;
 	}
 
+	get visible(){
+		return this.#visible;
+	}
+
 	set disabled(value){
 		this.#disabled=value;
 		this.element.toggleAttribute("disabled",value);
 		return this.#disabled;
+	}
+
+	set visible(value){
+		this.#visible=value;
+		this.element.style.display= value?"block":"none";
+		return this.#visible;
 	}
 
 	onclick(){}
@@ -101,7 +118,7 @@ export function addItemToEditbar(item){
 	if(!item instanceof BarItem){
 		throw new Error("item is not of type ControlbarItem");
 	}
-	editbar.items.push(item);
+	controlbar.items.push(item);
 }
 
 export function changeFile(){
@@ -116,6 +133,12 @@ if(!settings){
 		debugMenu:false
 	}
 	localStorage.setItem("settings",JSON.stringify(settings));
+}
+
+//check for presentation API
+var usePresApi = false;
+if(PresentationRequest){
+	usePresApi = true;
 }
 
 //get elements
@@ -142,16 +165,16 @@ const windows = {
 const topbar = {
 	items:[],
 	el: document.getElementById("topbar"),
-	logo: document.getElementById("topbar-logo"),
-	edit: document.getElementById("topbar-edit"),
-	view: document.getElementById("topbar-view")
+	logo: document.getElementById("topbar-logo")
 };
 
 const editbar = {
 	items:[],
 	el: document.getElementById("editbar"),
 	present: document.getElementById("editbar-present"),
-	presentStart: document.getElementById("editbar-present-start")
+	presentStart: document.getElementById("editbar-present-start"),
+	presentDisabled: document.getElementById("editbar-present-disabled"),
+	presentStartDisabled: document.getElementById("editbar-present-start-disabled")
 };
 
 const listView = document.getElementById("list-view");
@@ -177,10 +200,19 @@ var changed = false;
 var canPresent = false;
 
 //presentation api
-const presRequest = new PresentationRequest(["/editor","/present"]);
-presRequest.getAvailability().then(function(availability){
+function setPresAvailable(availability){
 	canPresent=availability.value;
-});
+	editbar.present.style.display=canPresent?"block":"none";
+	editbar.presentStart.style.display=canPresent?"block":"none";
+	editbar.presentDisabled.style.display=!canPresent?"block":"none";
+	editbar.presentStartDisabled.style.display=!canPresent?"block":"none";
+}
+
+let presRequest;
+if(usePresApi){
+	presRequest = new PresentationRequest(["/editor","/present"]);
+	presRequest.getAvailability().then(setPresAvailable);
+}
 
 async function openFile(file){
 	//get info from sd file
@@ -216,6 +248,7 @@ function setAddonMenu(e){
 		if(item.menu.items[i].disabled){
 			newItem.toggleAttribute("disabled",true);
 		}
+		newItem.style.display=item.menu.items[i].visible?"block":"none";
 		newItem.addEventListener("click",item.menu.items[i].onclick);
 		newItem.dataset.id=item.menu.items[i].id;
 		contextMenu.appendChild(newItem);
@@ -411,25 +444,22 @@ const tbView = new BarItem("s-view","View",new ContextMenu([
 addItemToTopbar(tbView);
 
 editbar.el.addEventListener("mouseover",function(){
-	presRequest.getAvailability().then(function(availability){
-		canPresent=availability.value;
-		editbar.present.classList.toggle("disabled",!canPresent);
-		editbar.presentStart.classList.toggle("disabled",!canPresent);
-	});
+	if(usePresApi){
+		presRequest.getAvailability().then(setPresAvailable);
+	}
 });
 
 //edit bar buttons
 editbar.present.addEventListener("click",function(){
-	if(!this.classList.contains("disabled"))
+	if(!this.classList.contains("disabled") && usePresApi)
 	presRequest.start();
 });
 editbar.presentStart.addEventListener("click",function(){
-	if(!this.classList.contains("disabled"))
+	if(!this.classList.contains("disabled") && usePresApi)
 	presRequest.start();
 });
 
 //settings
-
 button.sendCode.addEventListener("click",async function(){
 	let req = new Request("https://turnoffthetv.xyz/secret-code",{
 		method:"POST",
