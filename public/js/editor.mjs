@@ -4,6 +4,110 @@
 //import modules
 export const sd = await import("./sd.mjs");
 
+//for add-ons
+
+export class BarItem {
+	label;
+	id;
+	menu;
+	#disabled=false;
+	element = document.createElement("div");
+	constructor(id,label,menu){
+		this.label=label;
+		this.id=id;
+		if(!menu instanceof ContextMenu){
+			throw new Error("menu is not of type ContextMenu")
+		}else{
+			this.menu=menu;
+		}
+	}
+
+	get disabled(){
+		return this.#disabled;
+	}
+
+	set disabled(value){
+		this.#disabled=value;
+		this.element.toggleAttribute("disabled",value);
+		return this.#disabled;
+	}
+}
+
+export class ContextMenu {
+	items;
+	#disabled=false;
+	constructor(items){
+		if(!Array.isArray(items)){
+			throw new Error("items is not of type Array");
+		}
+		for(let i=0;i<items.length;i++){
+			if(!items[i] instanceof ContextMenuItem){
+				console.log(typeof items[i]);
+				throw new Error("item "+i+" is not of type ContextMenuItem");
+			}
+		}
+		this.items=items;
+	}
+}
+
+export class ContextMenuItem {
+	label;
+	id;
+	#disabled=false;
+	element = document.createElement("div");
+	constructor(id,label,onclick){
+		this.label=label;
+		this.id=id;
+		if(typeof onclick!=="function"){
+			throw new Error("onclick is not a function");
+		}
+		this.onclick=onclick;
+	}
+
+	get disabled(){
+		return this.#disabled;
+	}
+
+	set disabled(value){
+		this.#disabled=value;
+		this.element.toggleAttribute("disabled",value);
+		return this.#disabled;
+	}
+
+	onclick(){}
+}
+
+export function addItemToTopbar(item){
+	if(!item instanceof BarItem){
+		throw new Error("item is not of type BarItem");
+	}
+	topbar.items.push(item);
+	item.element.className="topbar-item";
+	item.element.innerText=item.label;
+	item.element.dataset.id=item.id;
+	item.element.addEventListener("mouseover",setAddonMenu);
+	item.element.addEventListener("click",showHideCtxMenu);
+	topbar.el.appendChild(item.element);
+}
+
+export function getTopbarItemById(id){
+	let item = topbar.items.find(function(e){
+		return e.id===id;
+	});
+	return item;
+}
+
+export function addItemToEditbar(item){
+	if(!item instanceof BarItem){
+		throw new Error("item is not of type ControlbarItem");
+	}
+	editbar.items.push(item);
+}
+
+export function changeFile(){
+	changed=true;
+}
+
 //get settings
 let settings = JSON.parse(localStorage.getItem("settings"));
 
@@ -39,7 +143,6 @@ const topbar = {
 	items:[],
 	el: document.getElementById("topbar"),
 	logo: document.getElementById("topbar-logo"),
-	file: document.getElementById("topbar-file"),
 	edit: document.getElementById("topbar-edit"),
 	view: document.getElementById("topbar-view")
 };
@@ -53,6 +156,8 @@ const editbar = {
 
 const listView = document.getElementById("list-view");
 const slideView = document.getElementById("slide-view");
+
+const slideList = document.getElementById("slide-list");
 
 const addonList = document.getElementById("addon-list");
 
@@ -197,7 +302,6 @@ topbar.el.addEventListener("mouseover",function(e){
 		contextMenu.innerHTML="";
 	}
 });
-
 topbar.logo.addEventListener("mouseover",function(){
 	contextMenu.innerHTML="";
 	let aboutItem = document.createElement("div");
@@ -218,13 +322,10 @@ topbar.logo.addEventListener("mouseover",function(){
 	contextMenu.style.left=topbar.logo.getBoundingClientRect().x;
 	contextMenu.style.top=topbar.logo.getBoundingClientRect().bottom;
 });
-topbar.file.addEventListener("mouseover",function(){
-	contextMenu.innerHTML="";
-	let newItem = document.createElement("div");
-	newItem.innerText="New";
-	newItem.className="context-item";
-	newItem.addEventListener("click",function(){
+topbar.logo.addEventListener("click",showHideCtxMenu);
 
+const tbFile = new BarItem("s-file","File",new ContextMenu([
+	new ContextMenuItem("s-file-new","New",function(){
 		let confirmed = false;
 
 		if(changed){
@@ -236,36 +337,21 @@ topbar.file.addEventListener("mouseover",function(){
 			sdFileHandler=undefined;
 			changed=false;
 			presentation={
-				name: "New presentation",
-				sampleRate: settings.sampleRate,
-				channels: [],
-				patches: []
+				name: "New Presentation",
+				groups: []
 			};
-			if(presentation.sampleRate!==a.sampleRate){
-				a = new AudioContext({sampleRate:presentation.sampleRate});
-			}
-			listView.innerHTML="";
-			document.title=presentation.name;
+			slideList.innerHTML="";
+			document.title=presentation.name+" - Slides";
 		}
-	});
-	contextMenu.appendChild(newItem);
-	
-	let openItem = document.createElement("div");
-	openItem.innerText="Open";
-	openItem.className="context-item";
-	openItem.addEventListener("click",function(){
+	}),
+	new ContextMenuItem("s-file-open","Open",function(){
 		window.showOpenFilePicker(sd.fileOpts).then(async function(res){
 			res["0"].getFile().then(openFile);
 
 			sdFileHandler = res["0"];
 		});
-	});
-	contextMenu.appendChild(openItem);
-
-	let saveItem = document.createElement("div");
-	saveItem.innerText="Save";
-	saveItem.className="context-item";
-	saveItem.addEventListener("click",async function(){
+	}),
+	new ContextMenuItem("s-file-save","Save",async function(){
 		if(sdFileHandler){
 			let fileWriter = await sdFileHandler.createWritable();
 			fileWriter.write(sd.create(presentation));
@@ -280,13 +366,8 @@ topbar.file.addEventListener("mouseover",function(){
 				fileWriter.close();
 			});
 		}
-	});
-	contextMenu.appendChild(saveItem);
-
-	let saveAsItem = document.createElement("div");
-	saveAsItem.innerText="Save As";
-	saveAsItem.className="context-item";
-	saveAsItem.addEventListener("click",async function(){
+	}),
+	new ContextMenuItem("s-file-saveas","Save As",async function(){
 		let fileOpts = sd.fileOpts;
 		fileOpts.suggestedName=presentation.name+".sd";
 		//ask where to save and reset file writer to there
@@ -299,89 +380,51 @@ topbar.file.addEventListener("mouseover",function(){
 			fileWriter.close();
 			fileWriter = await fileWriter.getWriter();
 		});
-	});
-	contextMenu.appendChild(saveAsItem);
-
-	let renameItem = document.createElement("div");
-	renameItem.innerText="Rename";
-	renameItem.className="context-item";
-	renameItem.addEventListener("click",function(){
+	}),
+	new ContextMenuItem("s-file-rename","Rename",function(){
 		windowBackground.style.display="block";
 		windows.renamePresentation.style.display="block";
 		input.renamePresentation.value=presentation.name;
 		input.renamePresentation.placeholder=presentation.name;
 		input.renamePresentation.focus();
-	});
-	contextMenu.appendChild(renameItem);
-	contextMenu.style.left=topbar.file.getBoundingClientRect().x;
-	contextMenu.style.top=topbar.file.getBoundingClientRect().bottom;
-});
-topbar.edit.addEventListener("mouseover",function(){
-	contextMenu.innerHTML="";
-	let cutItem = document.createElement("div");
-	cutItem.innerText="Cut";
-	cutItem.className="context-item";
-	cutItem.addEventListener("click",function(){});
-	contextMenu.appendChild(cutItem);
+	})
+]));
+addItemToTopbar(tbFile);
 
-	let copyItem = document.createElement("div");
-	copyItem.innerText="Copy";
-	copyItem.className="context-item";
-	copyItem.addEventListener("click",function(){});
-	contextMenu.appendChild(copyItem);
+const tbEdit = new BarItem("s-edit","Edit",new ContextMenu([
+	new ContextMenuItem("s-edit-cut","Cut",function(){}),
+	new ContextMenuItem("s-edit-copy","Copy",function(){}),
+	new ContextMenuItem("s-edit-paste","Paste",function(){}),
+	new ContextMenuItem("s-edit-newgroup","New Group",function(){
+		presentation.groups.push(new Group());
+		changed=true;
+	})
+]));
+addItemToTopbar(tbEdit);
 
-	let pasteItem = document.createElement("div");
-	pasteItem.innerText="Paste";
-	pasteItem.className="context-item";
-	pasteItem.addEventListener("click",function(){});
-	contextMenu.appendChild(pasteItem);
-
-	if(listView.style.display==="block"){
-		let newChannelItem = document.createElement("div");
-		newChannelItem.innerText="New Group";
-		newChannelItem.className="context-item";
-		newChannelItem.addEventListener("click",function(){
-			presentation.groups.push(new Group());
-			changed=true;
-		});
-		contextMenu.appendChild(newChannelItem);
-	}
-
-	contextMenu.style.left=topbar.edit.getBoundingClientRect().x;
-	contextMenu.style.top=topbar.edit.getBoundingClientRect().bottom;
-});
-topbar.view.addEventListener("mouseover",function(){
-	contextMenu.innerHTML="";
-	let settingsItem = document.createElement("div");
-	settingsItem.innerText="Settings";
-	settingsItem.className="context-item";
-	settingsItem.addEventListener("click",function(){
+const tbView = new BarItem("s-view","View",new ContextMenu([
+	new ContextMenuItem("s-view-settings","Settings",function(){
 		windowBackground.style.display="block";
 		windows.programSettings.style.display="block";
-	});
-	contextMenu.appendChild(settingsItem);
-
-	contextMenu.style.left=topbar.view.getBoundingClientRect().x;
-	contextMenu.style.top=topbar.view.getBoundingClientRect().bottom;
-});
-
-topbar.logo.addEventListener("click",showHideCtxMenu);
-topbar.file.addEventListener("click",showHideCtxMenu);
-topbar.edit.addEventListener("click",showHideCtxMenu);
-topbar.view.addEventListener("click",showHideCtxMenu);
+	})
+]));
+addItemToTopbar(tbView);
 
 editbar.el.addEventListener("mouseover",function(){
 	presRequest.getAvailability().then(function(availability){
 		canPresent=availability.value;
-		console.log(canPresent);
+		editbar.present.classList.toggle("disabled",!canPresent);
+		editbar.presentStart.classList.toggle("disabled",!canPresent);
 	});
 });
 
 //edit bar buttons
 editbar.present.addEventListener("click",function(){
+	if(!this.classList.contains("disabled"))
 	presRequest.start();
 });
 editbar.presentStart.addEventListener("click",function(){
+	if(!this.classList.contains("disabled"))
 	presRequest.start();
 });
 
@@ -465,128 +508,4 @@ if(window.launchQueue){
 		sdFileHandler=data.files[0];
 		data.files[0].getFile().then(openFile);
 	});
-}
-
-//for add-ons
-
-export class BarItem {
-	label;
-	id;
-	menu;
-	#disabled=false;
-	element = document.createElement("div");
-	constructor(id,label,menu){
-		this.label=label;
-		this.id=id;
-		if(!menu instanceof ContextMenu){
-			throw new Error("menu is not of type ContextMenu")
-		}else{
-			this.menu=menu;
-		}
-	}
-
-	get disabled(){
-		return this.#disabled;
-	}
-
-	set disabled(value){
-		this.#disabled=value;
-		this.element.toggleAttribute("disabled",value);
-		return this.#disabled;
-	}
-}
-
-export class ContextMenu {
-	items;
-	#disabled=false;
-	constructor(items){
-		if(!Array.isArray(items)){
-			throw new Error("items is not of type Array");
-		}
-		for(let i=0;i<items.length;i++){
-			if(!items[i] instanceof ContextMenuItem){
-				console.log(typeof items[i]);
-				throw new Error("item "+i+" is not of type ContextMenuItem");
-			}
-		}
-		this.items=items;
-	}
-}
-
-export class ContextMenuItem {
-	label;
-	id;
-	#disabled=false;
-	element = document.createElement("div");
-	constructor(id,label,onclick){
-		this.label=label;
-		this.id=id;
-		if(typeof onclick!=="function"){
-			throw new Error("onclick is not a function");
-		}
-		this.onclick=onclick;
-	}
-
-	get disabled(){
-		return this.#disabled;
-	}
-
-	set disabled(value){
-		this.#disabled=value;
-		this.element.toggleAttribute("disabled",value);
-		return this.#disabled;
-	}
-
-	onclick(){}
-}
-
-export function addItemToTopbar(item){
-	if(!item instanceof BarItem){
-		throw new Error("item is not of type BarItem");
-	}
-	topbar.items.push(item);
-	item.element.className="topbar-item";
-	item.element.innerText=item.label;
-	item.element.dataset.id=item.id;
-	item.element.addEventListener("mouseover",setAddonMenu);
-	item.element.addEventListener("click",showHideCtxMenu);
-	topbar.el.appendChild(item.element);
-}
-
-export function getTopbarItemById(id){
-	let item = topbar.items.find(function(e){
-		return e.id===id;
-	});
-	return item;
-}
-
-export function addItemToControlbar(item){
-	if(!item instanceof BarItem){
-		throw new Error("item is not of type ControlbarItem");
-	}
-	editbar.items.push(item);
-}
-
-export function addItemToPatchbar(item){
-	if(!item instanceof BarItem){
-		throw new Error("item is not of type BarItem");
-	}
-	patchbar.items.push(item);
-	item.element.className="topbar-item";
-	item.element.innerText=item.label;
-	item.element.dataset.id=item.id;
-	item.element.addEventListener("mouseover",setAddonMenu);
-	item.element.addEventListener("click",showHideCtxMenu);
-	patchbar.el.appendChild(item.element);
-}
-
-export function getPatchbarItemById(id){
-	let item = patchbar.items.find(function(e){
-		return e.id===id;
-	});
-	return item;
-}
-
-export function changeFile(){
-	changed=true;
 }

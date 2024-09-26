@@ -5,6 +5,11 @@ const server = http.createServer(slides);
 const fs = require("node:fs");
 const path = require("node:path");
 
+//special case for present page (to be implemented later)
+slides.get("/present/",function(req,res){
+	res.sendFile("./public/present/index.html");
+})
+
 //serve webpage
 slides.use(express.static(path.join(__dirname,"public"),{setHeaders:function(res,path,stat){
     res.set('Service-Worker-Allowed',"/");

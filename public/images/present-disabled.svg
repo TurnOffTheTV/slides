@@ -1,0 +1,26 @@
+<!--I'm disabled!-->
+<svg version="1.1" width="50" height="50" xmlns="http://www.w3.org/2000/svg">
+	<style>
+		line {
+			stroke: rgb(64,64,64);
+			stroke-width: 2.5px;
+			stroke-linecap: round;
+		}
+		@media (prefers-color-scheme: dark) {
+			line {
+				stroke: rgb(192,192,192);
+			}
+		}
+	</style>
+	<line x1="12.5" x2="12.5" y1="12.5" y2="30"/>
+	<line x1="37.5" x2="37.5" y1="12.5" y2="30"/>
+	<line x1="12.5" x2="37.5" y1="12.5" y2="12.5"/>
+	<line x1="12.5" x2="37.5" y1="30" y2="30"/>
+
+	<line x1="20" x2="30" y1="37.5" y2="37.5"/>
+	<line x1="25" x2="25" y1="30" y2="37.5"/>
+
+	<line x1="20" x2="20" y1="17.5" y2="25"/>
+	<line x1="20" x2="30" y1="17.5" y2="21.25"/>
+	<line x1="20" x2="30" y1="25" y2="21.25"/>
+</svg>
