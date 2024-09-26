@@ -137,7 +137,7 @@ if(!settings){
 
 //check for presentation API
 var usePresApi = false;
-if(PresentationRequest){
+if(navigator.presentation){
 	usePresApi = true;
 }
 
