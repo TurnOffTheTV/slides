@@ -125,6 +125,15 @@ export function changeFile(){
 	changed=true;
 }
 
+export function forcePresAvailable(value){
+	if(value===undefined){
+		value=true;
+	}
+	forcePresent=value;
+}
+
+const whiteSlide = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAABxCAYAAACQnewjAAAAAXNSR0IArs4c6QAAAvZJREFUeF7t1bERgEAMBDHov+inASDY9ETuwPLvcJ9zzuUjQOBV4BaIl0HgW0AgXgeBHwGBeB4EBOINEGgC/iDNzdSIgEBGDm3NJiCQ5mZqREAgI4e2ZhMQSHMzNSIgkJFDW7MJCKS5mRoREMjIoa3ZBATS3EyNCAhk5NDWbAICaW6mRgQEMnJoazYBgTQ3UyMCAhk5tDWbgECam6kRAYGMHNqaTUAgzc3UiIBARg5tzSYgkOZmakRAICOHtmYTEEhzMzUiIJCRQ1uzCQikuZkaERDIyKGt2QQE0txMjQgIZOTQ1mwCAmlupkYEBDJyaGs2AYE0N1MjAgIZObQ1m4BAmpupEQGBjBzamk1AIM3N1IiAQEYObc0mIJDmZmpEQCAjh7ZmExBIczM1IiCQkUNbswkIpLmZGhEQyMihrdkEBNLcTI0ICGTk0NZsAgJpbqZGBAQycmhrNgGBNDdTIwICGTm0NZuAQJqbqREBgYwc2ppNQCDNzdSIgEBGDm3NJiCQ5mZqREAgI4e2ZhMQSHMzNSIgkJFDW7MJCKS5mRoREMjIoa3ZBATS3EyNCAhk5NDWbAICaW6mRgQEMnJoazYBgTQ3UyMCAhk5tDWbgECam6kRAYGMHNqaTUAgzc3UiIBARg5tzSYgkOZmakRAICOHtmYTEEhzMzUiIJCRQ1uzCQikuZkaERDIyKGt2QQE0txMjQgIZOTQ1mwCAmlupkYEBDJyaGs2AYE0N1MjAgIZObQ1m4BAmpupEQGBjBzamk1AIM3N1IiAQEYObc0mIJDmZmpEQCAjh7ZmExBIczM1IiCQkUNbswkIpLmZGhEQyMihrdkEBNLcTI0ICGTk0NZsAgJpbqZGBAQycmhrNgGBNDdTIwICGTm0NZuAQJqbqREBgYwc2ppNQCDNzdSIgEBGDm3NJiCQ5mZqREAgI4e2ZhMQSHMzNSIgkJFDW7MJCKS5mRoREMjIoa3ZBATS3EyNCAhk5NDWbAICaW6mRgQEMnJoazaBB1qYwr0+oa0NAAAAAElFTkSuQmCC";
+
 //get settings
 let settings = JSON.parse(localStorage.getItem("settings"));
 
@@ -140,6 +149,8 @@ var usePresApi = false;
 if(navigator.presentation){
 	usePresApi = true;
 }
+
+var forcePresent = false;
 
 //get elements
 const button = {
@@ -199,9 +210,51 @@ export var presentation = {
 var changed = false;
 var canPresent = false;
 
+class Group {
+	slides=[];
+	constructor(){
+		this.name="New Group";
+		this.element = document.createElement("div");
+		this.element.className="group";
+		this.element.innerHTML="<div class=\"group-header\"><h2>New Group</h2><div class=\"group-slide-button\" title=\"Add new slide\"><img src=\"/images/plus.svg\"></div></div>";
+		this.element.children[0].children[1].addEventListener("click",() => {
+			this.slides.push(new Slide(this));
+		});
+		this.slideList=document.createElement("div");
+		this.slideList.className="group-slide-list";
+		this.element.appendChild(this.slideList);
+		slideList.appendChild(this.element);
+	}
+
+	setName(name){
+		this.name=name;
+		this.element.children[0].innerText=name;
+	}
+}
+
+class Slide {
+	background="rgb(255,255,255)";
+	contents=[];
+	constructor(parent){
+		this.element = document.createElement("div");
+		this.element.className="slide";
+		this.element.innerHTML="<p>New Slide</p><img src=\""+whiteSlide+"\">";
+		parent.slideList.appendChild(this.element);
+	}
+
+	getSrc(){
+		const canvas = new OffscreenCanvas(1920,1080);
+		const c = canvas.getContext("2d");
+		c.fillStyle=this.background;
+		c.fillRect(0,0,1920,1080);
+		//c.getImageData()
+	}
+}
+
 //presentation api
 function setPresAvailable(availability){
 	canPresent=availability.value;
+	if(forcePresent){canPresent=true;}
 	editbar.present.style.display=canPresent?"block":"none";
 	editbar.presentStart.style.display=canPresent?"block":"none";
 	editbar.presentDisabled.style.display=!canPresent?"block":"none";
@@ -212,6 +265,7 @@ let presRequest;
 if(usePresApi){
 	presRequest = new PresentationRequest("/present");
 	presRequest.getAvailability().then(setPresAvailable);
+	setInterval(function(){presRequest.getAvailability().then(setPresAvailable);},1000);
 }
 
 async function openFile(file){

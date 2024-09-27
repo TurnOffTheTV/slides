@@ -1,4 +1,5 @@
 export function init(editor){
+	editor.forcePresAvailable();
     editor.addItemToTopbar(new editor.BarItem("debug-topbar-menu","Debug",
         new editor.ContextMenu([
             new editor.ContextMenuItem("debug-change-file","Change File",function(){editor.changeFile()}),
