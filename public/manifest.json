@@ -10,6 +10,12 @@
 			"src": "/images/logo.png",
 			"type": "image/png",
 			"sizes": "1024x1024"
+		},
+		{
+			"src": "/images/maskable.png",
+			"type": "image/png",
+			"sizes": "1024x1024",
+			"purpose": "maskable"
 		}
 	],
 	"launch_handler": {
