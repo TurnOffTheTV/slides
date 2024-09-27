@@ -210,7 +210,7 @@ function setPresAvailable(availability){
 
 let presRequest;
 if(usePresApi){
-	presRequest = new PresentationRequest(["/editor","/present"]);
+	presRequest = new PresentationRequest("/present");
 	presRequest.getAvailability().then(setPresAvailable);
 }
 

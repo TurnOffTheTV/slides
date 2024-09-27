@@ -7,7 +7,7 @@ const path = require("node:path");
 
 //special case for present page (to be implemented later)
 slides.get("/present/",function(req,res){
-	res.sendFile("./public/present/index.html");
+	res.sendFile(__dirname+"/public/present/index.html");
 })
 
 //serve webpage
