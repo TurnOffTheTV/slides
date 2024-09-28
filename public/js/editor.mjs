@@ -238,16 +238,56 @@ class Slide {
 	constructor(parent){
 		this.element = document.createElement("div");
 		this.element.className="slide";
-		this.element.innerHTML="<p>New Slide</p><img src=\""+whiteSlide+"\">";
-		parent.slideList.appendChild(this.element);
+		this.getSrc().then((imgSrc) => {
+			this.element.innerHTML="<p>New Slide</p><img width=200 src=\""+imgSrc+"\">";
+			parent.slideList.appendChild(this.element);
+		})
 	}
 
-	getSrc(){
+	async getSrc(){
 		const canvas = new OffscreenCanvas(1920,1080);
-		const c = canvas.getContext("2d");
+		this.#draw(canvas.getContext("2d"));
+		return URL.createObjectURL(await canvas.convertToBlob());
+	}
+
+	#draw(c){
 		c.fillStyle=this.background;
 		c.fillRect(0,0,1920,1080);
-		//c.getImageData()
+		for(let i=0;i<this.contents.length;i++){
+			this.contents[i].draw(c);
+		}
+	}
+}
+
+class SlideObject {
+	constructor(type,x,y){
+		this.type=type;
+		this.x=x;
+		this.y=y;
+	}
+
+	draw(){
+		console.error("No draw specified for object:\n",this);
+	}
+}
+
+class TextBox extends SlideObject {
+	text="";
+	fill="rgb(0,0,0)";
+	stroke="rgb(255,255,255)";
+	strokeWeight=5;
+	constructor(x,y,width,height){
+		super("text-box",x,y);
+		this.width=width?width:1280;
+		this.height=height?height:720;
+	}
+
+	draw(c){
+		c.fillStyle=this.fill;
+		c.fillText(this.text,this.x,this.y);
+		c.strokeStyle=this.stroke;
+		c.lineWidth=this.strokeWeight;
+		c.strokeText(this.text,this.x,this.y);
 	}
 }
 
