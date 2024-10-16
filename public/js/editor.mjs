@@ -212,11 +212,22 @@ var canPresent = false;
 
 class Group {
 	slides=[];
-	constructor(){
-		this.name="New Group";
+	constructor(id,name){
+		while(true){
+			this.id=10000+Math.floor(Math.random()*90000);
+			for(var i=0;i<presentation.groups.length;i++){
+				if(presentation.groups[i].id===this.id){break;}
+			}
+			if(i===presentation.groups.length){
+				break;
+			}
+		}
+		if(id){this.id=id;}
+		this.name=name??"New Group";
 		this.element = document.createElement("div");
 		this.element.className="group";
-		this.element.innerHTML="<div class=\"group-header\"><h2>New Group</h2><div class=\"group-slide-button\" title=\"Add new slide\"><img src=\"/images/plus.svg\"></div></div>";
+		this.element.dataset.id=this.id;
+		this.element.innerHTML="<div class=\"group-header\"><h2>"+this.name+"</h2><div class=\"group-slide-button\" title=\"Add new slide\"><img src=\"/images/plus.svg\"></div></div>";
 		this.element.children[0].children[1].addEventListener("click",() => {
 			this.slides.push(new Slide(this));
 		});
@@ -224,11 +235,26 @@ class Group {
 		this.slideList.className="group-slide-list";
 		this.element.appendChild(this.slideList);
 		slideList.appendChild(this.element);
+
+		this.element.children[0].children[0].addEventListener("dblclick",function(){
+			this.contentEditable=true;
+			this.focus();
+			this.addEventListener("blur",function(){
+				console.log(this.parentElement.parentElement);
+				this.contentEditable=false;
+				for(let i=0;i<presentation.groups.length;i++){
+					if(presentation.groups[i].id==this.parentElement.parentElement.dataset.id){
+						presentation.groups[i].setName(this.innerText);
+						break;
+					}
+				}
+			},{once:true});
+		});
 	}
 
 	setName(name){
 		this.name=name;
-		this.element.children[0].innerText=name;
+		this.element.children[0].children[0].innerText=name;
 	}
 }
 
@@ -311,13 +337,15 @@ if(usePresApi){
 async function openFile(file){
 	//get info from sd file
 	let pres = await sd.parse(file);
+	console.log(pres);
 	presentation = pres.pres;
 	document.title=presentation.name+" - Slides";
 
 	//set up groups
-	listView.innerHTML="";
-	for(var i=0;i<pres.groups.length;i++){
-		//TODO: add groups based on file data
+	slideList.innerHTML="";
+	for(let i=0;i<pres.groups.length;i++){
+		let newGroup = new Group(pres.groups[i].id,pres.groups[i].name);
+		presentation.groups.push(newGroup);
 	}
 }
 
