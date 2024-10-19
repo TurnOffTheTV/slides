@@ -44,7 +44,7 @@ export async function parse(blob){
 	let bytes = new DataView(await blob.arrayBuffer());
 	//check if it's an SD file
 	if(textDecoder.decode(bytes).slice(0,2)!=="SD"){
-		throw Error("Given file is not a proper SD file.");
+		throw Error("Given file is not a proper SD file.",{cause:"Does not contain SD file identifier"});
 	}
 
 	let groups = [];
@@ -59,7 +59,7 @@ export async function parse(blob){
 		let offset = bytes.getUint8(2)+5;
 		for(let i=0;i<numGroups;i++){
 			let group = {};
-			group.id=textDecoder.decode(bytes).slice(offset,offset+5);
+			group.id=+textDecoder.decode(bytes).slice(offset,offset+5);
 			group.name=textDecoder.decode(bytes).slice(offset+6,offset+6+bytes.getUint8(offset+5));
 			groups.push(group);
 			offset+=8+bytes.getUint8(offset+5);

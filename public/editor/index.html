@@ -14,17 +14,20 @@
 			</div>
 		</div>
 		<div id="list-view" class="view">
-			<div id="editbar" class="h bar">
-				<div id="editbar-present" class="editbar-item" style="display:none;" title="Present"><img src="/images/present.svg"></div>
-				<div id="editbar-present-start" class="editbar-item" style="display:none;" title="Present from beginning"><img src="/images/present-start.svg"></div>
-				<div id="editbar-present-disabled" class="editbar-item" style="background:none;" title="Present"><img src="/images/present-disabled.svg"></div>
-				<div id="editbar-present-start-disabled" class="editbar-item" style="background:none;" title="Present from beginning"><img src="/images/present-start-disabled.svg"></div>
+			<div id="presentbar" class="h bar">
+				<div id="presentbar-present" class="editbar-item" style="display:none;" title="Present"><img src="/images/present.svg"></div>
+				<div id="presentbar-present-start" class="editbar-item" style="display:none;" title="Present from beginning"><img src="/images/present-start.svg"></div>
+				<div id="presentbar-present-disabled" class="editbar-item" style="background:none;" title="Present"><img src="/images/present-disabled.svg"></div>
+				<div id="presentbar-present-start-disabled" class="editbar-item" style="background:none;" title="Present from beginning"><img src="/images/present-start-disabled.svg"></div>
 			</div>
 			<div id="slide-list"></div>
 		</div>
-		<div id="slide-view" class="view" style="display:none">
-			<div style="height:100%;width:100%;background:black;">
-				<canvas id="slide-canvas"></canvas>
+		<div id="slide-editor" class="view" style="display:none">
+			<div id="editbar" class="h bar">
+				<div id="editbar-present" class="editbar-item" style="display:none;" title="Present"><img src="/images/present.svg"></div>
+			</div>
+			<div style="height:100%;width:100%;">
+				<canvas id="slide-canvas" width="1920" height="1080"></canvas>
 			</div>
 		</div>
 		<div id="window-background" style="display:none;"></div>

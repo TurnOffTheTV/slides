@@ -132,7 +132,13 @@ export function forcePresAvailable(value){
 	forcePresent=value;
 }
 
-const whiteSlide = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAABxCAYAAACQnewjAAAAAXNSR0IArs4c6QAAAvZJREFUeF7t1bERgEAMBDHov+inASDY9ETuwPLvcJ9zzuUjQOBV4BaIl0HgW0AgXgeBHwGBeB4EBOINEGgC/iDNzdSIgEBGDm3NJiCQ5mZqREAgI4e2ZhMQSHMzNSIgkJFDW7MJCKS5mRoREMjIoa3ZBATS3EyNCAhk5NDWbAICaW6mRgQEMnJoazYBgTQ3UyMCAhk5tDWbgECam6kRAYGMHNqaTUAgzc3UiIBARg5tzSYgkOZmakRAICOHtmYTEEhzMzUiIJCRQ1uzCQikuZkaERDIyKGt2QQE0txMjQgIZOTQ1mwCAmlupkYEBDJyaGs2AYE0N1MjAgIZObQ1m4BAmpupEQGBjBzamk1AIM3N1IiAQEYObc0mIJDmZmpEQCAjh7ZmExBIczM1IiCQkUNbswkIpLmZGhEQyMihrdkEBNLcTI0ICGTk0NZsAgJpbqZGBAQycmhrNgGBNDdTIwICGTm0NZuAQJqbqREBgYwc2ppNQCDNzdSIgEBGDm3NJiCQ5mZqREAgI4e2ZhMQSHMzNSIgkJFDW7MJCKS5mRoREMjIoa3ZBATS3EyNCAhk5NDWbAICaW6mRgQEMnJoazYBgTQ3UyMCAhk5tDWbgECam6kRAYGMHNqaTUAgzc3UiIBARg5tzSYgkOZmakRAICOHtmYTEEhzMzUiIJCRQ1uzCQikuZkaERDIyKGt2QQE0txMjQgIZOTQ1mwCAmlupkYEBDJyaGs2AYE0N1MjAgIZObQ1m4BAmpupEQGBjBzamk1AIM3N1IiAQEYObc0mIJDmZmpEQCAjh7ZmExBIczM1IiCQkUNbswkIpLmZGhEQyMihrdkEBNLcTI0ICGTk0NZsAgJpbqZGBAQycmhrNgGBNDdTIwICGTm0NZuAQJqbqREBgYwc2ppNQCDNzdSIgEBGDm3NJiCQ5mZqREAgI4e2ZhMQSHMzNSIgkJFDW7MJCKS5mRoREMjIoa3ZBATS3EyNCAhk5NDWbAICaW6mRgQEMnJoazaBB1qYwr0+oa0NAAAAAElFTkSuQmCC";
+function loadSlideEditor(slide){
+	listView.style.display="none";
+	slideEditor.style.display="block";
+	currentSlide=slide;
+	tbView.menu.getItemById("s-view-slidelist").visible=true;
+	slide.draw(sc,editItemIndex);
+}
 
 //get settings
 let settings = JSON.parse(localStorage.getItem("settings"));
@@ -179,17 +185,17 @@ const topbar = {
 	logo: document.getElementById("topbar-logo")
 };
 
-const editbar = {
+const presentbar = {
 	items:[],
-	el: document.getElementById("editbar"),
-	present: document.getElementById("editbar-present"),
-	presentStart: document.getElementById("editbar-present-start"),
-	presentDisabled: document.getElementById("editbar-present-disabled"),
-	presentStartDisabled: document.getElementById("editbar-present-start-disabled")
+	el: document.getElementById("presentbar"),
+	present: document.getElementById("presentbar-present"),
+	presentStart: document.getElementById("presentbar-present-start"),
+	presentDisabled: document.getElementById("presentbar-present-disabled"),
+	presentStartDisabled: document.getElementById("presentbar-present-start-disabled")
 };
 
 const listView = document.getElementById("list-view");
-const slideView = document.getElementById("slide-view");
+const slideEditor = document.getElementById("slide-editor");
 
 const slideList = document.getElementById("slide-list");
 
@@ -198,6 +204,13 @@ const addonList = document.getElementById("addon-list");
 const windowBackground = document.getElementById("window-background");
 
 const contextMenu = document.getElementById("context-menu");
+
+const slideCanvas = document.getElementById("slide-canvas");
+
+const sc = slideCanvas.getContext("2d");
+
+sc.fillStyle="black";
+sc.fillRect(0,0,1920,1080);
 
 //file management
 var sdFileHandler;
@@ -209,6 +222,14 @@ export var presentation = {
 };
 var changed = false;
 var canPresent = false;
+
+//slide editor
+var currentSlide;
+var editItemIndex = false;
+
+export function setEditItemIndex(index){
+	editItemIndex=index;
+}
 
 class Group {
 	slides=[];
@@ -240,7 +261,6 @@ class Group {
 			this.contentEditable=true;
 			this.focus();
 			this.addEventListener("blur",function(){
-				console.log(this.parentElement.parentElement);
 				this.contentEditable=false;
 				for(let i=0;i<presentation.groups.length;i++){
 					if(presentation.groups[i].id==this.parentElement.parentElement.dataset.id){
@@ -262,25 +282,49 @@ class Slide {
 	background="rgb(255,255,255)";
 	contents=[];
 	constructor(parent){
+		//DEBUG remove when slide editor is made
+		let tb = new TextBox(100,100,1820,980);
+		tb.text="This is test text";
+		tb.strokeWeight=0;
+		this.contents=[new Rectangle(480,270,960,540)];
+		this.contents.push(tb);
+
+		this.group=parent;
 		this.element = document.createElement("div");
 		this.element.className="slide";
 		this.getSrc().then((imgSrc) => {
 			this.element.innerHTML="<p>New Slide</p><img width=200 src=\""+imgSrc+"\">";
+			this.element.addEventListener("click",()=>{
+				//set all other slides to not be clicked bc theyre not
+				for(let i=0;i<presentation.groups.length;i++){
+					for(let j=0;j<presentation.groups[i].slides.length;j++){
+						presentation.groups[i].slides[j].element.classList.toggle("click-highlight",false);
+					}
+				}
+				this.element.classList.toggle("click-highlight",true);
+			});
+			this.element.addEventListener("dblclick",()=>{
+				loadSlideEditor(this);
+			});
 			parent.slideList.appendChild(this.element);
-		})
+		});
+	}
+
+	async updateSlide(){
+		this.element.children[1].src=await this.getSrc();
 	}
 
 	async getSrc(){
 		const canvas = new OffscreenCanvas(1920,1080);
-		this.#draw(canvas.getContext("2d"));
+		this.draw(canvas.getContext("2d"));
 		return URL.createObjectURL(await canvas.convertToBlob());
 	}
 
-	#draw(c){
+	draw(c,editItem){
 		c.fillStyle=this.background;
 		c.fillRect(0,0,1920,1080);
 		for(let i=0;i<this.contents.length;i++){
-			this.contents[i].draw(c);
+			this.contents[i].draw(c,editItem===i);
 		}
 	}
 }
@@ -302,18 +346,73 @@ class TextBox extends SlideObject {
 	fill="rgb(0,0,0)";
 	stroke="rgb(255,255,255)";
 	strokeWeight=5;
+	textSize=30;
+	horizontalAlign="left";
+	verticalAlign="top";
 	constructor(x,y,width,height){
 		super("text-box",x,y);
-		this.width=width?width:1280;
-		this.height=height?height:720;
+		this.width=width??1280;
+		this.height=height??720;
+	}
+
+	draw(c,editItem){
+		c.font=this.textSize+"px regular Tahoma";
+		c.textAlign="left";
+		c.textBaseline="top";
+		c.fillStyle=this.fill;
+		let textX = this.x;
+		let textY = this.y;
+		switch(this.horizontalAlign){
+			case "center":
+				textX=this.x+this.width/2;
+				c.textAlign="center";
+			break;
+			case "right":
+				textX=this.x+this.width;
+				c.textAlign="right";
+			break;
+		}
+		switch(this.verticalAlign){
+			case "center":
+				textY=this.y+this.height/2;
+				c.textBaseline="middle";
+			break;
+			case "bottom":
+				textY=this.y+this.height;
+				c.textAlign="bottom";
+			break;
+		}
+		c.fillText(this.text,textX,textY,this.width);
+		if(this.strokeWeight>0){
+			c.strokeStyle=this.stroke;
+			c.lineWidth=this.strokeWeight;
+			c.strokeText(this.text,textX,textY,this.width);
+		}
+		if(editItem){
+			c.strokeStyle="rgb(0,0,255)";
+			c.strokeRect(this.x,this.y,this.width,this.height);
+		}
+	}
+}
+
+class Rectangle extends SlideObject {
+	fill="rgb(0,0,0)";
+	stroke="rgb(255,255,255)";
+	strokeWeight=5;
+	constructor(x,y,width,height){
+		super("rectangle",x,y);
+		this.width=width??1280;
+		this.height=height??720;
 	}
 
 	draw(c){
 		c.fillStyle=this.fill;
-		c.fillText(this.text,this.x,this.y);
 		c.strokeStyle=this.stroke;
 		c.lineWidth=this.strokeWeight;
-		c.strokeText(this.text,this.x,this.y);
+		c.beginPath();
+		c.rect(this.x,this.y,this.width,this.height);
+		c.fill();
+		c.stroke();
 	}
 }
 
@@ -321,10 +420,10 @@ class TextBox extends SlideObject {
 function setPresAvailable(availability){
 	canPresent=availability.value;
 	if(forcePresent){canPresent=true;}
-	editbar.present.style.display=canPresent?"block":"none";
-	editbar.presentStart.style.display=canPresent?"block":"none";
-	editbar.presentDisabled.style.display=!canPresent?"block":"none";
-	editbar.presentStartDisabled.style.display=!canPresent?"block":"none";
+	presentbar.present.style.display=canPresent?"block":"none";
+	presentbar.presentStart.style.display=canPresent?"block":"none";
+	presentbar.presentDisabled.style.display=!canPresent?"block":"none";
+	presentbar.presentStartDisabled.style.display=!canPresent?"block":"none";
 }
 
 let presRequest;
@@ -561,22 +660,28 @@ const tbView = new BarItem("s-view","View",new ContextMenu([
 	new ContextMenuItem("s-view-settings","Settings",function(){
 		windowBackground.style.display="block";
 		windows.programSettings.style.display="block";
+	}),
+	new ContextMenuItem("s-view-slidelist","View Slide List",function(){
+		listView.style.display="block";
+		slideEditor.style.display="none";
+		tbView.menu.getItemById("s-view-slidelist").visible=false;
 	})
 ]));
+tbView.menu.getItemById("s-view-slidelist").visible=false;
 addItemToTopbar(tbView);
 
-editbar.el.addEventListener("mouseover",function(){
+presentbar.el.addEventListener("mouseover",function(){
 	if(usePresApi){
 		presRequest.getAvailability().then(setPresAvailable);
 	}
 });
 
-//edit bar buttons
-editbar.present.addEventListener("click",function(){
+//present bar buttons
+presentbar.present.addEventListener("click",function(){
 	if(!this.classList.contains("disabled") && usePresApi)
 	presRequest.start();
 });
-editbar.presentStart.addEventListener("click",function(){
+presentbar.presentStart.addEventListener("click",function(){
 	if(!this.classList.contains("disabled") && usePresApi)
 	presRequest.start();
 });
