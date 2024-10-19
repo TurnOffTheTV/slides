@@ -125,6 +125,21 @@ export function changeFile(){
 	changed=true;
 }
 
+export function forcePresAvailable(value){
+	if(value===undefined){
+		value=true;
+	}
+	forcePresent=value;
+}
+
+function loadSlideEditor(slide){
+	listView.style.display="none";
+	slideEditor.style.display="block";
+	currentSlide=slide;
+	tbView.menu.getItemById("s-view-slidelist").visible=true;
+	slide.draw(sc,editItemIndex);
+}
+
 //get settings
 let settings = JSON.parse(localStorage.getItem("settings"));
 
@@ -140,6 +155,8 @@ var usePresApi = false;
 if(navigator.presentation){
 	usePresApi = true;
 }
+
+var forcePresent = false;
 
 //get elements
 const button = {
@@ -168,17 +185,17 @@ const topbar = {
 	logo: document.getElementById("topbar-logo")
 };
 
-const editbar = {
+const presentbar = {
 	items:[],
-	el: document.getElementById("editbar"),
-	present: document.getElementById("editbar-present"),
-	presentStart: document.getElementById("editbar-present-start"),
-	presentDisabled: document.getElementById("editbar-present-disabled"),
-	presentStartDisabled: document.getElementById("editbar-present-start-disabled")
+	el: document.getElementById("presentbar"),
+	present: document.getElementById("presentbar-present"),
+	presentStart: document.getElementById("presentbar-present-start"),
+	presentDisabled: document.getElementById("presentbar-present-disabled"),
+	presentStartDisabled: document.getElementById("presentbar-present-start-disabled")
 };
 
 const listView = document.getElementById("list-view");
-const slideView = document.getElementById("slide-view");
+const slideEditor = document.getElementById("slide-editor");
 
 const slideList = document.getElementById("slide-list");
 
@@ -187,6 +204,13 @@ const addonList = document.getElementById("addon-list");
 const windowBackground = document.getElementById("window-background");
 
 const contextMenu = document.getElementById("context-menu");
+
+const slideCanvas = document.getElementById("slide-canvas");
+
+const sc = slideCanvas.getContext("2d");
+
+sc.fillStyle="black";
+sc.fillRect(0,0,1920,1080);
 
 //file management
 var sdFileHandler;
@@ -199,31 +223,228 @@ export var presentation = {
 var changed = false;
 var canPresent = false;
 
+//slide editor
+var currentSlide;
+var editItemIndex = false;
+
+export function setEditItemIndex(index){
+	editItemIndex=index;
+}
+
+class Group {
+	slides=[];
+	constructor(id,name){
+		while(true){
+			this.id=10000+Math.floor(Math.random()*90000);
+			for(var i=0;i<presentation.groups.length;i++){
+				if(presentation.groups[i].id===this.id){break;}
+			}
+			if(i===presentation.groups.length){
+				break;
+			}
+		}
+		if(id){this.id=id;}
+		this.name=name??"New Group";
+		this.element = document.createElement("div");
+		this.element.className="group";
+		this.element.dataset.id=this.id;
+		this.element.innerHTML="<div class=\"group-header\"><h2>"+this.name+"</h2><div class=\"group-slide-button\" title=\"Add new slide\"><img src=\"/images/plus.svg\"></div></div>";
+		this.element.children[0].children[1].addEventListener("click",() => {
+			this.slides.push(new Slide(this));
+		});
+		this.slideList=document.createElement("div");
+		this.slideList.className="group-slide-list";
+		this.element.appendChild(this.slideList);
+		slideList.appendChild(this.element);
+
+		this.element.children[0].children[0].addEventListener("dblclick",function(){
+			this.contentEditable=true;
+			this.focus();
+			this.addEventListener("blur",function(){
+				this.contentEditable=false;
+				for(let i=0;i<presentation.groups.length;i++){
+					if(presentation.groups[i].id==this.parentElement.parentElement.dataset.id){
+						presentation.groups[i].setName(this.innerText);
+						break;
+					}
+				}
+			},{once:true});
+		});
+	}
+
+	setName(name){
+		this.name=name;
+		this.element.children[0].children[0].innerText=name;
+	}
+}
+
+class Slide {
+	background="rgb(255,255,255)";
+	contents=[];
+	constructor(parent){
+		//DEBUG remove when slide editor is made
+		let tb = new TextBox(100,100,1820,980);
+		tb.text="This is test text";
+		tb.strokeWeight=0;
+		this.contents=[new Rectangle(480,270,960,540)];
+		this.contents.push(tb);
+
+		this.group=parent;
+		this.element = document.createElement("div");
+		this.element.className="slide";
+		this.getSrc().then((imgSrc) => {
+			this.element.innerHTML="<p>New Slide</p><img width=200 src=\""+imgSrc+"\">";
+			this.element.addEventListener("click",()=>{
+				//set all other slides to not be clicked bc theyre not
+				for(let i=0;i<presentation.groups.length;i++){
+					for(let j=0;j<presentation.groups[i].slides.length;j++){
+						presentation.groups[i].slides[j].element.classList.toggle("click-highlight",false);
+					}
+				}
+				this.element.classList.toggle("click-highlight",true);
+			});
+			this.element.addEventListener("dblclick",()=>{
+				loadSlideEditor(this);
+			});
+			parent.slideList.appendChild(this.element);
+		});
+	}
+
+	async updateSlide(){
+		this.element.children[1].src=await this.getSrc();
+	}
+
+	async getSrc(){
+		const canvas = new OffscreenCanvas(1920,1080);
+		this.draw(canvas.getContext("2d"));
+		return URL.createObjectURL(await canvas.convertToBlob());
+	}
+
+	draw(c,editItem){
+		c.fillStyle=this.background;
+		c.fillRect(0,0,1920,1080);
+		for(let i=0;i<this.contents.length;i++){
+			this.contents[i].draw(c,editItem===i);
+		}
+	}
+}
+
+class SlideObject {
+	constructor(type,x,y){
+		this.type=type;
+		this.x=x;
+		this.y=y;
+	}
+
+	draw(){
+		console.error("No draw specified for object:\n",this);
+	}
+}
+
+class TextBox extends SlideObject {
+	text="";
+	fill="rgb(0,0,0)";
+	stroke="rgb(255,255,255)";
+	strokeWeight=5;
+	textSize=30;
+	horizontalAlign="left";
+	verticalAlign="top";
+	constructor(x,y,width,height){
+		super("text-box",x,y);
+		this.width=width??1280;
+		this.height=height??720;
+	}
+
+	draw(c,editItem){
+		c.font=this.textSize+"px regular Tahoma";
+		c.textAlign="left";
+		c.textBaseline="top";
+		c.fillStyle=this.fill;
+		let textX = this.x;
+		let textY = this.y;
+		switch(this.horizontalAlign){
+			case "center":
+				textX=this.x+this.width/2;
+				c.textAlign="center";
+			break;
+			case "right":
+				textX=this.x+this.width;
+				c.textAlign="right";
+			break;
+		}
+		switch(this.verticalAlign){
+			case "center":
+				textY=this.y+this.height/2;
+				c.textBaseline="middle";
+			break;
+			case "bottom":
+				textY=this.y+this.height;
+				c.textAlign="bottom";
+			break;
+		}
+		c.fillText(this.text,textX,textY,this.width);
+		if(this.strokeWeight>0){
+			c.strokeStyle=this.stroke;
+			c.lineWidth=this.strokeWeight;
+			c.strokeText(this.text,textX,textY,this.width);
+		}
+		if(editItem){
+			c.strokeStyle="rgb(0,0,255)";
+			c.strokeRect(this.x,this.y,this.width,this.height);
+		}
+	}
+}
+
+class Rectangle extends SlideObject {
+	fill="rgb(0,0,0)";
+	stroke="rgb(255,255,255)";
+	strokeWeight=5;
+	constructor(x,y,width,height){
+		super("rectangle",x,y);
+		this.width=width??1280;
+		this.height=height??720;
+	}
+
+	draw(c){
+		c.fillStyle=this.fill;
+		c.strokeStyle=this.stroke;
+		c.lineWidth=this.strokeWeight;
+		c.beginPath();
+		c.rect(this.x,this.y,this.width,this.height);
+		c.fill();
+		c.stroke();
+	}
+}
+
 //presentation api
 function setPresAvailable(availability){
 	canPresent=availability.value;
-	editbar.present.style.display=canPresent?"block":"none";
-	editbar.presentStart.style.display=canPresent?"block":"none";
-	editbar.presentDisabled.style.display=!canPresent?"block":"none";
-	editbar.presentStartDisabled.style.display=!canPresent?"block":"none";
+	if(forcePresent){canPresent=true;}
+	presentbar.present.style.display=canPresent?"block":"none";
+	presentbar.presentStart.style.display=canPresent?"block":"none";
+	presentbar.presentDisabled.style.display=!canPresent?"block":"none";
+	presentbar.presentStartDisabled.style.display=!canPresent?"block":"none";
 }
 
 let presRequest;
 if(usePresApi){
 	presRequest = new PresentationRequest("/present");
 	presRequest.getAvailability().then(setPresAvailable);
+	setInterval(function(){presRequest.getAvailability().then(setPresAvailable);},1000);
 }
 
 async function openFile(file){
 	//get info from sd file
 	let pres = await sd.parse(file);
+	console.log(pres);
 	presentation = pres.pres;
 	document.title=presentation.name+" - Slides";
 
 	//set up groups
-	listView.innerHTML="";
-	for(var i=0;i<pres.groups.length;i++){
-		//TODO: add groups based on file data
+	slideList.innerHTML="";
+	for(let i=0;i<pres.groups.length;i++){
+		let newGroup = new Group(pres.groups[i].id,pres.groups[i].name);
+		presentation.groups.push(newGroup);
 	}
 }
 
@@ -439,22 +660,28 @@ const tbView = new BarItem("s-view","View",new ContextMenu([
 	new ContextMenuItem("s-view-settings","Settings",function(){
 		windowBackground.style.display="block";
 		windows.programSettings.style.display="block";
+	}),
+	new ContextMenuItem("s-view-slidelist","View Slide List",function(){
+		listView.style.display="block";
+		slideEditor.style.display="none";
+		tbView.menu.getItemById("s-view-slidelist").visible=false;
 	})
 ]));
+tbView.menu.getItemById("s-view-slidelist").visible=false;
 addItemToTopbar(tbView);
 
-editbar.el.addEventListener("mouseover",function(){
+presentbar.el.addEventListener("mouseover",function(){
 	if(usePresApi){
 		presRequest.getAvailability().then(setPresAvailable);
 	}
 });
 
-//edit bar buttons
-editbar.present.addEventListener("click",function(){
+//present bar buttons
+presentbar.present.addEventListener("click",function(){
 	if(!this.classList.contains("disabled") && usePresApi)
 	presRequest.start();
 });
-editbar.presentStart.addEventListener("click",function(){
+presentbar.presentStart.addEventListener("click",function(){
 	if(!this.classList.contains("disabled") && usePresApi)
 	presRequest.start();
 });
