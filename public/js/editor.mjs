@@ -137,7 +137,7 @@ function loadSlideEditor(slide){
 	slideEditor.style.display="block";
 	currentSlide=slide;
 	tbView.menu.getItemById("s-view-slidelist").visible=true;
-	slide.draw(sc,editItemIndex);
+	slide.draw(sc,editItem);
 }
 
 //get settings
@@ -207,6 +207,39 @@ const contextMenu = document.getElementById("context-menu");
 
 const slideCanvas = document.getElementById("slide-canvas");
 
+slideCanvas.addEventListener("mousedown",function(e){
+	editItemChanged=false;
+	for(let i=0;i<currentSlide.contents.length;i++){
+		currentSlide.contents[i].click(Math.round(1920*(e.offsetX/e.target.getBoundingClientRect().width)),Math.round(1080*(e.offsetY/e.target.getBoundingClientRect().height)));
+	}
+	if(!editItemChanged){
+		editItem=false;
+	}
+	currentSlide.draw(sc,editItem);
+	
+});
+
+slideCanvas.addEventListener("mousemove",function(e){
+	slideCanvas.style.cursor="";
+	for(let i=0;i<currentSlide.contents.length;i++){
+		if(currentSlide.contents[i]===editItem){
+			currentSlide.contents[i].hover(Math.round(1920*(e.offsetX/e.target.getBoundingClientRect().width)),Math.round(1080*(e.offsetY/e.target.getBoundingClientRect().height)));
+		}
+	}
+	if(editItem){
+		currentSlide.draw(sc,editItem);
+	}
+	
+});
+
+slideCanvas.addEventListener("mouseup",function(e){
+	for(let i=0;i<currentSlide.contents.length;i++){
+		currentSlide.contents[i].unclick();
+	}
+	currentSlide.draw(sc,editItem);
+	
+});
+
 const sc = slideCanvas.getContext("2d");
 
 sc.fillStyle="black";
@@ -225,11 +258,12 @@ var canPresent = false;
 
 //slide editor
 var currentSlide;
-var editItemIndex = false;
-
-export function setEditItemIndex(index){
-	editItemIndex=index;
-}
+var editItem = false;
+var editItemChanged = false;
+var moveItem = false;
+var moveItemType = false;
+var moveItemOffsetX = false;
+var moveItemOffsetY = false;
 
 class Group {
 	slides=[];
@@ -324,7 +358,7 @@ class Slide {
 		c.fillStyle=this.background;
 		c.fillRect(0,0,1920,1080);
 		for(let i=0;i<this.contents.length;i++){
-			this.contents[i].draw(c,editItem===i);
+			this.contents[i].draw(c,this.contents[i]===editItem);
 		}
 	}
 }
@@ -332,9 +366,13 @@ class Slide {
 class SlideObject {
 	constructor(type,x,y){
 		this.type=type;
-		this.x=x;
-		this.y=y;
+		this.x=x??480;
+		this.y=y??270;
 	}
+
+	click(){}
+
+	unclick(){}
 
 	draw(){
 		console.error("No draw specified for object:\n",this);
@@ -354,6 +392,12 @@ class TextBox extends SlideObject {
 		this.width=width??1280;
 		this.height=height??720;
 	}
+
+	click(x,y){
+		
+	}
+
+	unclick(){}
 
 	draw(c,editItem){
 		c.font=this.textSize+"px regular Tahoma";
@@ -391,6 +435,15 @@ class TextBox extends SlideObject {
 		if(editItem){
 			c.strokeStyle="rgb(0,0,255)";
 			c.strokeRect(this.x,this.y,this.width,this.height);
+			c.fillStyle="rgb(0,0,255)";
+			c.fillRect(this.x-5,this.y-5,10,10);
+			c.fillRect(this.x+this.width/2-5,this.y-5,10,10);
+			c.fillRect(this.x+this.width-5,this.y-5,10,10);
+			c.fillRect(this.x-5,this.y+this.height/2-5,10,10);
+			c.fillRect(this.x-5,this.y+this.height-5,10,10);
+			c.fillRect(this.x+this.width-5,this.y+this.height/2-5,10,10);
+			c.fillRect(this.x+this.width-5,this.y+this.height-5,10,10);
+			c.fillRect(this.x+this.width/2-5,this.y+this.height-5,10,10);
 		}
 	}
 }
@@ -399,20 +452,169 @@ class Rectangle extends SlideObject {
 	fill="rgb(0,0,0)";
 	stroke="rgb(255,255,255)";
 	strokeWeight=5;
-	constructor(x,y,width,height){
+	constructor(x,y,width,height,radius){
 		super("rectangle",x,y);
 		this.width=width??1280;
 		this.height=height??720;
+		this.radius=radius??0;
 	}
 
-	draw(c){
+	hover(x,y){
+		if(x>this.x && y>this.y && x<this.x+this.width && y<this.y+this.height){
+			slideCanvas.style.cursor="move";
+		}
+
+		if(x>this.x-10 && y>this.y-10 && x<this.x+10 && y<this.y+10){
+			slideCanvas.style.cursor="nwse-resize";
+		}
+		if(x>this.x+this.width/2-10 && y>this.y-10 && x<this.x+this.width/2+10 && y<this.y+10){
+			slideCanvas.style.cursor="ns-resize";
+		}
+		if(x>this.x+this.width-10 && y>this.y-10 && x<this.x+this.width+10 && y<this.y+10){
+			slideCanvas.style.cursor="nesw-resize";
+		}
+
+		if(x>this.x-10 && y>this.y+this.height/2-10 && x<this.x+10 && y<this.y+this.height/2+10){
+			slideCanvas.style.cursor="ew-resize";
+		}
+		if(x>this.x+this.width-10 && y>this.y+this.height/2-10 && x<this.x+this.width+10 && y<this.y+this.height/2+10){
+			slideCanvas.style.cursor="ew-resize";
+		}
+
+		if(x>this.x-10 && y>this.y+this.height-10 && x<this.x+10 && y<this.y+this.height+10){
+			slideCanvas.style.cursor="nesw-resize";
+		}
+		if(x>this.x+this.width/2-10 && y>this.y+this.height-10 && x<this.x+this.width/2+10 && y<this.y+this.height+10){
+			slideCanvas.style.cursor="ns-resize";
+		}
+		if(x>this.x+this.width-10 && y>this.y+this.height-10 && x<this.x+this.width+10 && y<this.y+this.height+10){
+			slideCanvas.style.cursor="nwse-resize";
+		}
+
+		if(moveItem===this){
+			switch(moveItemType){
+				case 0:
+					this.x=(x+moveItemOffsetX);
+					this.y=(y+moveItemOffsetY)
+				break;
+				case 1:
+					this.width=this.width+this.x-x;
+					this.height=this.height+this.y-y;
+					this.x=x;
+					this.y=y;
+				break;
+				case 2:
+					this.height=this.height+this.y-y;
+					this.y=y;
+				break;
+				case 3:
+					this.width=x-this.x;
+					this.height=this.height+this.y-y;
+					this.y=y;
+				break;
+				case 4:
+					this.width=this.width+this.x-x;
+					this.x=x;
+				break;
+				case 5:
+					this.width=x-this.x;
+				break;
+				case 6:
+					this.width=this.width+this.x-x;
+					this.height=y-this.y;
+					this.x=x;
+				break;
+				case 7:
+					this.height=y-this.y;
+				break;
+				case 8:
+					this.width=x-this.x;
+					this.height=y-this.y;
+				break;
+			}
+			this.x=Math.round(this.x);
+			this.y=Math.round(this.y);
+		}
+	}
+
+	click(x,y){
+		if(editItem===this){
+			moveItemOffsetX=this.x-x;
+			moveItemOffsetY=this.y-y;
+			if(x>this.x && y>this.y && x<this.x+this.width && y<this.y+this.height){
+				moveItem=this;
+				moveItemType=0;
+			}
+			if(x>this.x-10 && y>this.y-10 && x<this.x+10 && y<this.y+10){
+				moveItem=this;
+				moveItemType=1;
+			}
+			if(x>this.x+this.width/2-10 && y>this.y-10 && x<this.x+this.width/2+10 && y<this.y+10){
+				moveItem=this;
+				moveItemType=2;
+			}
+			if(x>this.x+this.width-10 && y>this.y-10 && x<this.x+this.width+10 && y<this.y+10){
+				moveItem=this;
+				moveItemType=3;
+			}
+			if(x>this.x-10 && y>this.y+this.height/2-10 && x<this.x+10 && y<this.y+this.height/2+10){
+				moveItem=this;
+				moveItemType=4;
+			}
+			if(x>this.x+this.width-10 && y>this.y+this.height/2-10 && x<this.x+this.width+10 && y<this.y+this.height/2+10){
+				moveItem=this;
+				moveItemType=5;
+			}
+			if(x>this.x-10 && y>this.y+this.height-10 && x<this.x+10 && y<this.y+this.height+10){
+				moveItem=this;
+				moveItemType=6;
+			}
+			if(x>this.x+this.width/2-10 && y>this.y+this.height-10 && x<this.x+this.width/2+10 && y<this.y+this.height+10){
+				moveItem=this;
+				moveItemType=7;
+			}
+			if(x>this.x+this.width-10 && y>this.y+this.height-10 && x<this.x+this.width+10 && y<this.y+this.height+10){
+				moveItem=this;
+				moveItemType=8;
+			}
+			
+		}
+		if(x>this.x && y>this.y && x<this.x+this.width && y<this.y+this.height || moveItem===this){
+			editItem=this;
+			editItemChanged=true;
+		}
+	}
+
+	unclick(){
+		if(moveItem===this){
+			moveItem=false;
+			moveItemOffsetX=false;
+			moveItemOffsetY=false;
+		}
+	}
+
+	draw(c,editItem){
 		c.fillStyle=this.fill;
 		c.strokeStyle=this.stroke;
 		c.lineWidth=this.strokeWeight;
 		c.beginPath();
-		c.rect(this.x,this.y,this.width,this.height);
+		c.roundRect(this.x,this.y,this.width,this.height,this.radius);
 		c.fill();
 		c.stroke();
+		if(editItem){
+			c.lineWidth=2.5;
+			c.strokeStyle="rgb(0,0,255)";
+			c.strokeRect(this.x,this.y,this.width,this.height);
+			c.fillStyle="rgb(0,0,255)";
+			c.fillRect(this.x-5,this.y-5,10,10);
+			c.fillRect(this.x+this.width/2-5,this.y-5,10,10);
+			c.fillRect(this.x+this.width-5,this.y-5,10,10);
+			c.fillRect(this.x-5,this.y+this.height/2-5,10,10);
+			c.fillRect(this.x-5,this.y+this.height-5,10,10);
+			c.fillRect(this.x+this.width-5,this.y+this.height/2-5,10,10);
+			c.fillRect(this.x+this.width-5,this.y+this.height-5,10,10);
+			c.fillRect(this.x+this.width/2-5,this.y+this.height-5,10,10);
+		}
 	}
 }
 
@@ -665,6 +867,11 @@ const tbView = new BarItem("s-view","View",new ContextMenu([
 		listView.style.display="block";
 		slideEditor.style.display="none";
 		tbView.menu.getItemById("s-view-slidelist").visible=false;
+		for(let i=0;i<presentation.groups.length;i++){
+			for(let j=0;j<presentation.groups[i].slides.length;j++){
+				presentation.groups[i].slides[j].updateSlide();
+			}
+		}
 	})
 ]));
 tbView.menu.getItemById("s-view-slidelist").visible=false;
