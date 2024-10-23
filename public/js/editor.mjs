@@ -121,6 +121,24 @@ export function addItemToEditbar(item){
 	controlbar.items.push(item);
 }
 
+export function setContextMenu(menu,x,y){
+	contextMenu.innerHTML="";
+	for(let i=0;i<menu.items.length;i++){
+		let newItem = document.createElement("div");
+		newItem.innerText=menu.items[i].label;
+		newItem.className="context-item";
+		if(menu.items[i].disabled){
+			newItem.toggleAttribute("disabled",true);
+		}
+		newItem.style.display=menu.items[i].visible?"block":"none";
+		newItem.addEventListener("click",menu.items[i].onclick);
+		newItem.dataset.id=menu.items[i].id;
+		contextMenu.appendChild(newItem);
+	}
+	contextMenu.style.left=x;
+	contextMenu.style.top=y;
+}
+
 export function changeFile(){
 	changed=true;
 }
@@ -145,9 +163,22 @@ let settings = JSON.parse(localStorage.getItem("settings"));
 
 if(!settings){
 	settings={
-		debugMenu:false
+		slideSize:1920
 	}
 	localStorage.setItem("settings",JSON.stringify(settings));
+}
+
+//set slideSize setting
+switch(settings.slideSize){
+	case 720:
+		document.getElementById("select-vertical-res").selectedIndex=2;
+	break;
+	case 1080:
+		document.getElementById("select-vertical-res").selectedIndex=1;
+	break;
+	case 2160:
+		document.getElementById("select-vertical-res").selectedIndex=0;
+	break;
 }
 
 //check for presentation API
@@ -194,6 +225,12 @@ const presentbar = {
 	presentStartDisabled: document.getElementById("presentbar-present-start-disabled")
 };
 
+const editbar = {
+	el: document.getElementById("editbar"),
+	add: document.getElementById("editbar-add")
+
+}
+
 const listView = document.getElementById("list-view");
 const slideEditor = document.getElementById("slide-editor");
 
@@ -232,12 +269,13 @@ slideCanvas.addEventListener("mousemove",function(e){
 	
 });
 
-slideCanvas.addEventListener("mouseup",function(e){
-	for(let i=0;i<currentSlide.contents.length;i++){
-		currentSlide.contents[i].unclick();
+window.addEventListener("mouseup",function(){
+	if(slideEditor.style.display==="block"){
+		for(let i=0;i<currentSlide.contents.length;i++){
+			currentSlide.contents[i].unclick();
+		}
+		currentSlide.draw(sc,editItem);
 	}
-	currentSlide.draw(sc,editItem);
-	
 });
 
 const sc = slideCanvas.getContext("2d");
@@ -315,33 +353,31 @@ class Group {
 class Slide {
 	background="rgb(255,255,255)";
 	contents=[];
-	constructor(parent){
-		//DEBUG remove when slide editor is made
-		let tb = new TextBox(100,100,1820,980);
-		tb.text="This is test text";
-		tb.strokeWeight=0;
-		this.contents=[new Rectangle(480,270,960,540)];
-		this.contents.push(tb);
-
+	constructor(parent,name){
 		this.group=parent;
+		this.name=name??"New Slide"
 		this.element = document.createElement("div");
 		this.element.className="slide";
-		this.getSrc().then((imgSrc) => {
-			this.element.innerHTML="<p>New Slide</p><img width=200 src=\""+imgSrc+"\">";
-			this.element.addEventListener("click",()=>{
-				//set all other slides to not be clicked bc theyre not
-				for(let i=0;i<presentation.groups.length;i++){
-					for(let j=0;j<presentation.groups[i].slides.length;j++){
-						presentation.groups[i].slides[j].element.classList.toggle("click-highlight",false);
-					}
+		this.element.innerHTML="<p>"+this.name+"</p><img width=200 src=\"/images/white-slide.png\">";
+		this.element.addEventListener("click",()=>{
+			//set all other slides to not be clicked bc theyre not
+			for(let i=0;i<presentation.groups.length;i++){
+				for(let j=0;j<presentation.groups[i].slides.length;j++){
+					presentation.groups[i].slides[j].element.classList.toggle("click-highlight",false);
 				}
-				this.element.classList.toggle("click-highlight",true);
-			});
-			this.element.addEventListener("dblclick",()=>{
-				loadSlideEditor(this);
-			});
-			parent.slideList.appendChild(this.element);
+			}
+			this.element.classList.toggle("click-highlight",true);
 		});
+		this.element.addEventListener("dblclick",()=>{
+			loadSlideEditor(this);
+		});
+		parent.slideList.appendChild(this.element);
+		this.updateSlide();
+	}
+
+	setName(name){
+		this.name=name;
+		this.element.children[0].innerText=name;
 	}
 
 	async updateSlide(){
@@ -364,99 +400,12 @@ class Slide {
 }
 
 class SlideObject {
-	constructor(type,x,y){
+	constructor(type,x,y,width,height){
 		this.type=type;
-		this.x=x??480;
-		this.y=y??270;
-	}
-
-	click(){}
-
-	unclick(){}
-
-	draw(){
-		console.error("No draw specified for object:\n",this);
-	}
-}
-
-class TextBox extends SlideObject {
-	text="";
-	fill="rgb(0,0,0)";
-	stroke="rgb(255,255,255)";
-	strokeWeight=5;
-	textSize=30;
-	horizontalAlign="left";
-	verticalAlign="top";
-	constructor(x,y,width,height){
-		super("text-box",x,y);
-		this.width=width??1280;
-		this.height=height??720;
-	}
-
-	click(x,y){
-		
-	}
-
-	unclick(){}
-
-	draw(c,editItem){
-		c.font=this.textSize+"px regular Tahoma";
-		c.textAlign="left";
-		c.textBaseline="top";
-		c.fillStyle=this.fill;
-		let textX = this.x;
-		let textY = this.y;
-		switch(this.horizontalAlign){
-			case "center":
-				textX=this.x+this.width/2;
-				c.textAlign="center";
-			break;
-			case "right":
-				textX=this.x+this.width;
-				c.textAlign="right";
-			break;
-		}
-		switch(this.verticalAlign){
-			case "center":
-				textY=this.y+this.height/2;
-				c.textBaseline="middle";
-			break;
-			case "bottom":
-				textY=this.y+this.height;
-				c.textAlign="bottom";
-			break;
-		}
-		c.fillText(this.text,textX,textY,this.width);
-		if(this.strokeWeight>0){
-			c.strokeStyle=this.stroke;
-			c.lineWidth=this.strokeWeight;
-			c.strokeText(this.text,textX,textY,this.width);
-		}
-		if(editItem){
-			c.strokeStyle="rgb(0,0,255)";
-			c.strokeRect(this.x,this.y,this.width,this.height);
-			c.fillStyle="rgb(0,0,255)";
-			c.fillRect(this.x-5,this.y-5,10,10);
-			c.fillRect(this.x+this.width/2-5,this.y-5,10,10);
-			c.fillRect(this.x+this.width-5,this.y-5,10,10);
-			c.fillRect(this.x-5,this.y+this.height/2-5,10,10);
-			c.fillRect(this.x-5,this.y+this.height-5,10,10);
-			c.fillRect(this.x+this.width-5,this.y+this.height/2-5,10,10);
-			c.fillRect(this.x+this.width-5,this.y+this.height-5,10,10);
-			c.fillRect(this.x+this.width/2-5,this.y+this.height-5,10,10);
-		}
-	}
-}
-
-class Rectangle extends SlideObject {
-	fill="rgb(0,0,0)";
-	stroke="rgb(255,255,255)";
-	strokeWeight=5;
-	constructor(x,y,width,height,radius){
-		super("rectangle",x,y);
-		this.width=width??1280;
-		this.height=height??720;
-		this.radius=radius??0;
+		this.x=x??(16/9)*settings.slideSize/4;
+		this.y=y??settings.slideSize/4;
+		this.width=width??(16/9)*settings.slideSize/2;
+		this.height=height??settings.slideSize/2;
 	}
 
 	hover(x,y){
@@ -593,6 +542,81 @@ class Rectangle extends SlideObject {
 		}
 	}
 
+	draw(){
+		console.error("No draw specified for object:\n",this);
+	}
+}
+
+class TextBox extends SlideObject {
+	text="Double click to edit text";
+	fill="rgb(0,0,0)";
+	stroke="rgb(255,255,255)";
+	strokeWeight=5;
+	textSize=30;
+	horizontalAlign="left";
+	verticalAlign="top";
+	constructor(x,y,width,height){
+		super("text-box",x,y,width,height);
+	}
+
+	draw(c,editItem){
+		c.font=this.textSize+"px regular Tahoma";
+		c.textAlign="left";
+		c.textBaseline="top";
+		c.fillStyle=this.fill;
+		let textX = this.x;
+		let textY = this.y;
+		switch(this.horizontalAlign){
+			case "center":
+				textX=this.x+this.width/2;
+				c.textAlign="center";
+			break;
+			case "right":
+				textX=this.x+this.width;
+				c.textAlign="right";
+			break;
+		}
+		switch(this.verticalAlign){
+			case "center":
+				textY=this.y+this.height/2;
+				c.textBaseline="middle";
+			break;
+			case "bottom":
+				textY=this.y+this.height;
+				c.textAlign="bottom";
+			break;
+		}
+		c.fillText(this.text,textX,textY,this.width);
+		if(this.strokeWeight>0){
+			c.strokeStyle=this.stroke;
+			c.lineWidth=this.strokeWeight;
+			c.strokeText(this.text,textX,textY,this.width);
+		}
+		if(editItem){
+			c.strokeStyle="rgb(0,0,255)";
+			c.strokeRect(this.x,this.y,this.width,this.height);
+			c.fillStyle="rgb(0,0,255)";
+			c.fillRect(this.x-5,this.y-5,10,10);
+			c.fillRect(this.x+this.width/2-5,this.y-5,10,10);
+			c.fillRect(this.x+this.width-5,this.y-5,10,10);
+			c.fillRect(this.x-5,this.y+this.height/2-5,10,10);
+			c.fillRect(this.x-5,this.y+this.height-5,10,10);
+			c.fillRect(this.x+this.width-5,this.y+this.height/2-5,10,10);
+			c.fillRect(this.x+this.width-5,this.y+this.height-5,10,10);
+			c.fillRect(this.x+this.width/2-5,this.y+this.height-5,10,10);
+		}
+	}
+}
+
+class Rectangle extends SlideObject {
+	fill="rgb(0,0,0)";
+	stroke="rgb(255,255,255)";
+	strokeWeight=5;
+	constructor(x,y,width,height,radius){
+		super("rectangle",x,y,width,height);
+		this.radius=radius??0;
+	}
+
 	draw(c,editItem){
 		c.fillStyle=this.fill;
 		c.strokeStyle=this.stroke;
@@ -637,8 +661,21 @@ if(usePresApi){
 
 async function openFile(file){
 	//get info from sd file
-	let pres = await sd.parse(file);
+	let pres;
+	try {
+		pres = await sd.parse(file);
+	} catch(err){
+		console.error(err);
+		alert("Error reading file");
+		return false;
+	}
 	console.log(pres);
+
+	if(changed){
+		if(!confirm("This will overwrite your working presentation. Are you sure?"))
+		return;
+	}
+
 	presentation = pres.pres;
 	document.title=presentation.name+" - Slides";
 
@@ -647,6 +684,14 @@ async function openFile(file){
 	for(let i=0;i<pres.groups.length;i++){
 		let newGroup = new Group(pres.groups[i].id,pres.groups[i].name);
 		presentation.groups.push(newGroup);
+		for(let j=0;j<pres.groups[i].slides.length;j++){
+			let newSlide = new Slide(newGroup,pres.groups[i].slides[j].name);
+			newSlide.background="rgb("+pres.groups[i].slides[j].background+")";
+			newGroup.slides.push(newSlide);
+		}
+		for(let j=0;j<newGroup.slides.length;j++){
+			newGroup.slides[i].updateSlide();
+		}
 	}
 }
 
@@ -659,32 +704,17 @@ function showHideCtxMenu(){
 }
 
 function setAddonMenu(e){
-	contextMenu.innerHTML="";
-	let item;
 	if(topbar.el.contains(e.target)){
-		item = getTopbarItemById(e.target.dataset.id);
+		let item = getTopbarItemById(e.target.dataset.id);
+		setContextMenu(item.menu,e.target.getBoundingClientRect().left,e.target.getBoundingClientRect().bottom);
 	}
-	for(let i=0;i<item.menu.items.length;i++){
-		let newItem = document.createElement("div");
-		newItem.innerText=item.menu.items[i].label;
-		newItem.className="context-item";
-		if(item.menu.items[i].disabled){
-			newItem.toggleAttribute("disabled",true);
-		}
-		newItem.style.display=item.menu.items[i].visible?"block":"none";
-		newItem.addEventListener("click",item.menu.items[i].onclick);
-		newItem.dataset.id=item.menu.items[i].id;
-		contextMenu.appendChild(newItem);
-	}
-	contextMenu.style.left=e.target.getBoundingClientRect().x;
-	contextMenu.style.top=e.target.getBoundingClientRect().bottom;
 }
 
 listView.style.display="block";
 
 //event listeners
 window.addEventListener("click",function(e){
-	if(!topbar.el.contains(e.target)){
+	if(!topbar.el.contains(e.target) && !editbar.el.contains(e.target)){
 		contextMenu.style.display="none";
 	}
 });
@@ -709,7 +739,7 @@ window.addEventListener("keydown",async function(e){
 			sdFileHandler = res["0"];
 		});
 	}
-	if(e.code==="KeyS" && e.ctrlKey){
+	if(e.code==="KeyS" && (e.ctrlKey || e.metaKey)){
 		e.preventDefault();
 		if(sdFileHandler){
 			let fileWriter = await sdFileHandler.createWritable();
@@ -740,6 +770,11 @@ window.addEventListener("keydown",async function(e){
 			fileWriter.close();
 			fileWriter = await fileWriter.getWriter();
 		});
+	}
+	if(slideEditor.style.display==="block" && e.code==="Backspace" && editItem){
+		let index = currentSlide.contents.findIndex(function(e){return e===editItem});
+		currentSlide.contents.splice(index,1);
+		currentSlide.draw(sc,editItem);
 	}
 });
 
@@ -892,6 +927,27 @@ presentbar.presentStart.addEventListener("click",function(){
 	if(!this.classList.contains("disabled") && usePresApi)
 	presRequest.start();
 });
+
+//edit bar buttons
+topbar.el.addEventListener("mouseover",function(e){
+	if(e.target===editbar.el){
+		contextMenu.innerHTML="";
+	}
+});
+editbar.add.addEventListener("mouseover",function(){
+	const addMenu = new ContextMenu([
+		new ContextMenuItem("s-add-rectangle","Rectangle",function(){
+			currentSlide.contents.push(new Rectangle());
+			currentSlide.draw(sc,editItem);
+		}),
+		new ContextMenuItem("s-add-textbox","Text Box",function(){
+			currentSlide.contents.push(new TextBox());
+			currentSlide.draw(sc,editItem);
+		})
+	]);
+	setContextMenu(addMenu,editbar.add.getBoundingClientRect().left,editbar.add.getBoundingClientRect().bottom);
+});
+editbar.add.addEventListener("click",showHideCtxMenu);
 
 //settings
 button.sendCode.addEventListener("click",async function(){

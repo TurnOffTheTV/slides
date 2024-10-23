@@ -24,7 +24,7 @@
 		</div>
 		<div id="slide-editor" class="view" style="display:none">
 			<div id="editbar" class="h bar">
-				<div id="editbar-present" class="editbar-item" style="display:none;" title="Present"><img src="/images/present.svg"></div>
+				<div id="editbar-add" class="editbar-item" title="Add"><img src="/images/plus.svg"></div>
 			</div>
 			<div style="height:100%;width:100%;">
 				<canvas id="slide-canvas" width="1920" height="1080"></canvas>
@@ -43,6 +43,14 @@
 		<div id="window-program-settings" class="window" style="display:none;">
 			<h1>Slides Settings</h1>
 			<div class="v bar" style="border:1px var(--color-gray) solid;background:var(--color-background-secondary);">
+				<div class="settings-item" style="text-align: center;">
+					<select id="select-vertical-res">
+						<option>3840x2160</option>
+						<option>1920x1080</option>
+						<option>1280x720</option>
+					</select>
+					<label for="select-vertical-res">Slide Resolution</label>
+				</div>
 				<div class="settings-item">
 					<input id="input-secret-code">
 					<input id="button-send-code" type="button" value="Send">
